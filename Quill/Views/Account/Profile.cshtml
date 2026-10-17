@@ -1,0 +1,83 @@
+@using Quill.Models.ViewModels
+@model ProfileViewModel
+
+@{
+    ViewData["FullWidth"] = true;
+    ViewData["Title"] = "个人资料";
+}
+
+<div class="narrow-wrap">
+    <div class="page-head">
+        <div>
+            <span class="eyebrow">Account</span>
+            <h1>个人资料</h1>
+        </div>
+    </div>
+
+    <form asp-controller="Account" asp-action="Profile" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-2 small"></div>
+
+        <section class="form-section">
+            <h2>基本信息</h2>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">用户名（不可修改）</label>
+                    <input class="form-control" value="@Model.UserName" disabled />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DisplayName" class="form-label"></label>
+                    <input asp-for="DisplayName" class="form-control" placeholder="展示在文章与评论中的名字" />
+                    <span asp-validation-for="DisplayName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Avatar" class="form-label"></label>
+                    <input asp-for="Avatar" class="form-control" placeholder="/uploads/xxx.jpg" />
+                    <span asp-validation-for="Avatar" class="text-danger small"></span>
+                    <div class="form-text">可填写媒体库中上传的图片地址。</div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Bio" class="form-label"></label>
+                    <textarea asp-for="Bio" class="form-control" rows="3" placeholder="介绍一下自己…"></textarea>
+                    <span asp-validation-for="Bio" class="text-danger small"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <h2>修改密码 <span class="text-muted fw-normal small">（留空则不修改）</span></h2>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="CurrentPassword" class="form-label"></label>
+                    <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="CurrentPassword" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="NewPassword" class="form-label"></label>
+                    <input asp-for="NewPassword" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ConfirmNewPassword" class="form-label"></label>
+                    <input asp-for="ConfirmNewPassword" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="ConfirmNewPassword" class="text-danger small"></span>
+                </div>
+            </div>
+        </section>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">保存修改</button>
+            <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">返回首页</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

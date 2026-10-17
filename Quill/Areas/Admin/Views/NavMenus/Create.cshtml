@@ -1,0 +1,20 @@
+@model NavMenu
+@{
+    ViewData["Title"] = "新建菜单项";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">新建菜单项</h4>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">返回列表</a>
+</div>
+
+<form asp-action="Create" method="post" class="card">
+    <div class="card-body">
+        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+        <partial name="_FormFields" model="Model" />
+    </div>
+    <div class="card-footer">
+        <button type="submit" class="btn btn-primary">保存菜单项</button>
+        <a class="btn btn-link" asp-action="Index">取消</a>
+    </div>
+</form>

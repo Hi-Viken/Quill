@@ -1,0 +1,77 @@
+@using Quill.Models
+@model List<HomeBanner>
+
+@{
+    var hasMultiple = Model.Count > 1;
+}
+
+<section class="hero-carousel">
+    <div id="heroCarousel" class="carousel slide carousel-fade @(hasMultiple ? "" : "single")"
+         data-bs-ride="carousel" data-bs-interval="5200" data-bs-pause="hover">
+        @if (hasMultiple)
+        {
+            <div class="carousel-indicators">
+                @for (var i = 0; i < Model.Count; i++)
+                {
+                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="@i"
+                            class="@(i == 0 ? "active" : "")" aria-label="第 @(i + 1) 张"></button>
+                }
+            </div>
+        }
+
+        <div class="carousel-inner">
+            @for (var i = 0; i < Model.Count; i++)
+            {
+                var b = Model[i];
+                var hasCaption = !string.IsNullOrWhiteSpace(b.Title)
+                                 || !string.IsNullOrWhiteSpace(b.Subtitle)
+                                 || b.HasLink;
+                <div class="carousel-item @(i == 0 ? "active" : "")">
+                    <div class="slide-media @(b.HasImage ? "" : "no-image")">
+                        @if (b.HasImage)
+                        {
+                            <img src="@b.Image" alt="@b.Title" loading="@(i == 0 ? "eager" : "lazy")" />
+                        }
+                        @if (hasCaption)
+                        {
+                            @* 标题区域：贴在图片内部的下沿，作为一条通栏字幕条，不超出图片范围 *@
+                            <div class="slide-caption">
+                                <div class="slide-caption-main">
+                                    @if (!string.IsNullOrWhiteSpace(b.Title))
+                                    {
+                                        <h2 class="slide-title">@b.Title</h2>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(b.Subtitle))
+                                    {
+                                        <p class="slide-desc">@b.Subtitle</p>
+                                    }
+                                </div>
+                                @if (b.HasLink)
+                                {
+                                    <a class="slide-cta" href="@b.Link"
+                                       target="@(b.NewWindow ? "_blank" : "_self")"
+                                       rel="@(b.NewWindow ? "noopener" : null)">
+                                        @(string.IsNullOrWhiteSpace(b.LinkText) ? "查看详情" : b.LinkText)
+                                        <svg class="ico" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (hasMultiple)
+        {
+            <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">上一张</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">下一张</span>
+            </button>
+        }
+    </div>
+</section>

@@ -1,0 +1,62 @@
+@using Quill.Models
+@model Quill.Models.Page
+
+@{
+    ViewBag.PageId = Model.Id;
+}
+
+<article class="article">
+    <div class="article-body">
+        <header class="article-head">
+            <span class="eyebrow">Page</span>
+            <h1 class="article-title" style="margin-top:.4rem;">@Model.Title</h1>
+            <div class="article-meta">
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-clock" /></svg>
+                    更新于 @Model.UpdatedAt.ToString("yyyy年MM月dd日 HH:mm")
+                </span>
+                @if (Model.Author != null)
+                {
+                    <span class="meta-item">
+                        <svg class="ico" aria-hidden="true"><use href="#i-user" /></svg>
+                        @Model.Author.DisplayNameOrName
+                    </span>
+                }
+            </div>
+        </header>
+
+        <div class="post-content">
+            @Html.Raw(Model.ContentHtml)
+        </div>
+    </div>
+</article>
+
+@if (ViewBag.AllowComment == true)
+{
+    <section id="comments" class="comments-card">
+        <div class="comments-head">
+            <h2>
+                <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+                评论
+            </h2>
+        </div>
+
+        <partial name="_CommentForm" model="new Quill.Models.ViewModels.CommentInputModel { PageId = Model.Id }" />
+
+        @if (((List<Comment>)ViewBag.Comments).Any())
+        {
+            <div class="mt-4">
+                <partial name="_CommentTree" model="(List<Comment>)ViewBag.Comments" />
+            </div>
+        }
+        else
+        {
+            <div class="empty-state" style="padding:2.5rem 1rem;">
+                <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+                <p>还没有评论~</p>
+            </div>
+        }
+    </section>
+}
+
+<partial name="_ArticleRail" />

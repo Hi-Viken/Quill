@@ -1,0 +1,41 @@
+@using Quill.Models
+@model PagedResult<Article>
+
+@{
+    var author = (ApplicationUser)ViewBag.Author;
+}
+
+<section class="author-hero">
+    @if (!string.IsNullOrEmpty(author.Avatar))
+    {
+        <img src="@author.Avatar" alt="@author.DisplayNameOrName" class="avatar-lg" />
+    }
+    else
+    {
+        <span class="avatar-lg" aria-hidden="true">@author.DisplayNameOrName.Substring(0, 1)</span>
+    }
+    <div class="min-w-0">
+        <span class="eyebrow">Author</span>
+        <h1>@author.DisplayNameOrName</h1>
+        @if (!string.IsNullOrEmpty(author.Bio))
+        {
+            <p class="text-muted mb-2" style="font-size:.9rem;">@author.Bio</p>
+        }
+        <div class="meta-line">
+            <span>
+                <svg class="ico ico-sm" aria-hidden="true"><use href="#i-file" /></svg>
+                @Model.TotalCount 篇文章
+            </span>
+            <span>
+                <svg class="ico ico-sm" aria-hidden="true"><use href="#i-calendar" /></svg>
+                加入于 @author.CreatedAt.ToString("yyyy-MM-dd")
+            </span>
+        </div>
+    </div>
+</section>
+
+<div class="section-head">
+    <h2>Ta 的文章</h2>
+</div>
+
+<partial name="_ArticleList" model="Model" />

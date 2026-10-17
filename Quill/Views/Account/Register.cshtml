@@ -1,0 +1,57 @@
+@using Quill.Models.ViewModels
+@model RegisterViewModel
+
+@{
+    ViewData["FullWidth"] = true;
+    ViewData["Title"] = "注册";
+}
+
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-head">
+            <span class="brand-mark mark">
+                <svg class="ico" aria-hidden="true"><use href="#i-spark" /></svg>
+            </span>
+            <h1>创建账号</h1>
+            <p>加入我们，一起留下阅读与思考的痕迹</p>
+        </div>
+
+        <form asp-controller="Account" asp-action="Register" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2 small"></div>
+
+            <div class="mb-3">
+                <label asp-for="UserName" class="form-label"></label>
+                <input asp-for="UserName" class="form-control" autocomplete="username" placeholder="用于登录的用户名" />
+                <span asp-validation-for="UserName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" autocomplete="email" placeholder="name@example.com" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" placeholder="至少 6 位字符" />
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="再次输入密码" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">注册</button>
+        </form>
+
+        <div class="auth-foot">
+            已有账号？<a asp-controller="Account" asp-action="Login">去登录</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,157 @@
+@{
+    ViewData["Title"] = "仪表盘";
+    var recentArticles = ViewBag.RecentArticles as List<Article> ?? new List<Article>();
+    var pendingComments = ViewBag.PendingComments as List<Comment> ?? new List<Comment>();
+}
+
+<div class="stat-grid">
+    <div class="stat-card accent">
+        <div class="stat-icon">
+            <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+        </div>
+        <div class="stat-label">文章总数</div>
+        <div class="stat-value">@ViewBag.ArticleTotal</div>
+        <div class="stat-sub">
+            <span>已发布 @ViewBag.ArticlePublished</span>
+            <span>·</span>
+            <span>草稿 @ViewBag.ArticleDraft</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background:var(--info-soft);color:var(--info);">
+            <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+        </div>
+        <div class="stat-label">评论总数</div>
+        <div class="stat-value">@ViewBag.CommentTotal</div>
+        <div class="stat-sub">
+            <a class="text-decoration-none" asp-controller="Comments" asp-action="Index" asp-route-approved="false">
+                待审核 @ViewBag.CommentPending →
+            </a>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background:var(--warn-soft);color:var(--warn);">
+            <svg class="ico" aria-hidden="true"><use href="#i-users" /></svg>
+        </div>
+        <div class="stat-label">注册用户</div>
+        <div class="stat-value">@ViewBag.UserCount</div>
+        <div class="stat-sub">
+            <a class="text-decoration-none" asp-controller="Users" asp-action="Index">查看用户 →</a>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg class="ico" aria-hidden="true"><use href="#i-tag" /></svg>
+        </div>
+        <div class="stat-label">分类 / 标签</div>
+        <div class="stat-value">@ViewBag.CategoryCount<span class="text-muted" style="font-size:1.1rem;font-weight:400;"> / </span>@ViewBag.TagCount</div>
+        <div class="stat-sub">
+            <a class="text-decoration-none" asp-controller="Categories" asp-action="Index">分类</a>
+            <span>·</span>
+            <a class="text-decoration-none" asp-controller="Tags" asp-action="Index">标签</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>最近文章</span>
+                <a class="btn btn-sm btn-light" asp-controller="Articles" asp-action="Index">全部文章</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <tbody>
+                        @if (recentArticles.Count == 0)
+                        {
+                            <tr>
+                                <td class="text-center text-muted py-5">还没有文章</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var a in recentArticles)
+                            {
+                                <tr>
+                                    <td>
+                                        <a class="text-decoration-none fw-semibold" style="color:var(--ink);"
+                                           asp-controller="Articles" asp-action="Edit" asp-route-id="@a.Id">@a.Title</a>
+                                        <div class="small text-muted mt-1">
+                                            @(a.Author?.DisplayNameOrName ?? "—") ·
+                                            @a.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        @if (a.Status == ArticleStatus.Published)
+                                        {
+                                            <span class="badge text-bg-success">已发布</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge text-bg-secondary">草稿</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>待审核评论</span>
+                <a class="btn btn-sm btn-light" asp-controller="Comments" asp-action="Index" asp-route-approved="false">去审核</a>
+            </div>
+            <div class="list-group list-group-flush">
+                @if (pendingComments.Count == 0)
+                {
+                    <div class="list-group-item text-center text-muted py-5">没有待审核评论</div>
+                }
+                else
+                {
+                    foreach (var c in pendingComments)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="small" style="color:var(--ink);">@c.AuthorName</strong>
+                                <span class="small text-muted">@c.CreatedAt.ToString("MM-dd HH:mm")</span>
+                            </div>
+                            <div class="small text-truncate text-secondary">@c.Content</div>
+                            <div class="small text-muted mt-1">
+                                @if (c.Article != null)
+                                {
+                                    <span>《@c.Article.Title》</span>
+                                }
+                                else if (c.PageId.HasValue)
+                                {
+                                    <span>独立页面</span>
+                                }
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <form asp-controller="Comments" asp-action="Approve" asp-route-id="@c.Id" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <svg class="ico me-1" aria-hidden="true"><use href="#i-check" /></svg> 通过
+                                    </button>
+                                </form>
+                                <form asp-controller="Comments" asp-action="Delete" asp-route-id="@c.Id" method="post"
+                                      onsubmit="return confirm('确定删除这条评论？');">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        <svg class="ico me-1" aria-hidden="true"><use href="#i-trash" /></svg> 删除
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

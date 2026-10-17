@@ -1,0 +1,62 @@
+@using Quill.Models
+@model Quill.Utils.PagedResult<Article>
+
+@if (Model != null && Model.TotalPages > 1)
+{
+    @* 页码窗口：首页 / 末页 + 当前页前后各两页，中间用省略号 *@
+    var pages = new List<int?>();
+    var start = Math.Max(1, Model.Page - 2);
+    var end = Math.Min(Model.TotalPages, Model.Page + 2);
+
+    if (start > 1)
+    {
+        pages.Add(1);
+        if (start > 2) { pages.Add(null); }
+    }
+    for (var i = start; i <= end; i++) { pages.Add(i); }
+    if (end < Model.TotalPages)
+    {
+        if (end < Model.TotalPages - 1) { pages.Add(null); }
+        pages.Add(Model.TotalPages);
+    }
+
+    @* 保留当前查询串（如搜索结果 ?q=…），否则翻页会丢失筛选条件 *@
+    var keepQuery = Context.Request.Query
+        .Where(kv => !string.Equals(kv.Key, "page", StringComparison.OrdinalIgnoreCase))
+        .SelectMany(kv => kv.Value.Select(v => kv.Key + "=" + Uri.EscapeDataString(v ?? string.Empty)))
+        .ToList();
+    var prefix = (Context.Request.Path.Value ?? "/") + "?" + (keepQuery.Count > 0 ? string.Join("&", keepQuery) + "&" : "");
+
+    <nav aria-label="分页导航">
+        <ul class="pagination justify-content-center flex-wrap">
+            <li class="page-item @(Model.HasPrev ? "" : "disabled")">
+                <a class="page-link" href="@(prefix)page=@(Model.Page - 1)" aria-label="上一页">
+                    <svg class="ico ico-sm" aria-hidden="true" style="transform: rotate(180deg)"><use href="#i-chevron-right" /></svg>
+                </a>
+            </li>
+
+            @foreach (var p in pages)
+            {
+                if (p == null)
+                {
+                    <li class="page-item disabled"><span class="page-link border-0 bg-transparent">…</span></li>
+                }
+                else
+                {
+                    <li class="page-item @(p == Model.Page ? "active" : "")">
+                        <a class="page-link" href="@(prefix)page=@p">@p</a>
+                    </li>
+                }
+            }
+
+            <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                <a class="page-link" href="@(prefix)page=@(Model.Page + 1)" aria-label="下一页">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-right" /></svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="page-summary">
+        第 @Model.Page / @Model.TotalPages 页 · 共 @Model.TotalCount 篇
+    </div>
+}

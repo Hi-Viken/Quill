@@ -1,0 +1,289 @@
+﻿@inject Quill.Services.SettingsService SettingsSvc
+@inject Quill.Services.TaxonomyService TaxonomySvc
+@inject Quill.Services.ArticleService ArticleSvc
+@using Quill.Models
+@{
+    var site = SettingsSvc.Get();
+    var menu = SettingsSvc.GetMenuTree();
+    var links = SettingsSvc.GetFriendLinks();
+    var siteName = site.SiteName;
+    var fullWidth = ViewData["FullWidth"] as bool? == true;
+    var initial = string.IsNullOrWhiteSpace(siteName) ? "N" : siteName.Trim().Substring(0, 1);
+}
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - @siteName</title>
+    @if (!string.IsNullOrEmpty(site.SiteDescription))
+    {
+        <meta name="description" content="@site.SiteDescription" />
+    }
+    @if (!string.IsNullOrEmpty(site.SiteKeywords))
+    {
+        <meta name="keywords" content="@site.SiteKeywords" />
+    }
+    <script>
+        // 默认深色主题；用户点过切换则沿用其偏好
+        (function () {
+            try {
+                var t = localStorage.getItem('nb-theme') || 'dark';
+                if (t === 'light') document.documentElement.removeAttribute('data-theme');
+            } catch (e) { }
+        })();
+    </script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Quill.styles.css" asp-append-version="true" />
+    @if (!string.IsNullOrEmpty(site.CustomHeadHtml))
+    {
+        @Html.Raw(site.CustomHeadHtml)
+    }
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <partial name="_Icons" />
+
+    <header class="site-header">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark">
+                        @if (!string.IsNullOrEmpty(site.Logo))
+                        {
+                            <img src="@site.Logo" alt="@siteName" />
+                        }
+                        else
+                        {
+                            @initial
+                        }
+                    </span>
+                    <span class="brand-text">@siteName</span>
+                </a>
+
+                <div class="d-flex align-items-center gap-1 ms-auto order-lg-3">
+                    <button class="icon-btn theme-toggle" type="button" aria-label="切换深色模式" title="切换深色模式">
+                        <svg class="ico ico-to-dark" aria-hidden="true"><use href="#i-moon" /></svg>
+                        <svg class="ico ico-to-light" aria-hidden="true"><use href="#i-sun" /></svg>
+                    </button>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                            aria-controls="mainNav" aria-expanded="false" aria-label="切换导航">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+
+                <div class="collapse navbar-collapse order-lg-2" id="mainNav">
+                    @* 多级导航菜单（递归渲染，支持任意层级） *@
+                    <ul class="navbar-nav me-lg-auto ms-lg-3 mb-2 mb-lg-0">
+                        @foreach (var item in menu)
+                        {
+                            @await Html.PartialAsync("_MenuItem", item)
+                        }
+                    </ul>
+
+                    <form class="header-search" asp-controller="Article" asp-action="Search" method="get" role="search">
+                        <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+                        <input type="search" name="q" placeholder="搜索文章…" aria-label="搜索文章"
+                               value="@(ViewData["Keyword"] ?? "")" />
+                        <button type="submit" aria-label="搜索">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                        </button>
+                    </form>
+
+                    <ul class="navbar-nav ms-lg-2">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link user-pill dropdown-toggle" href="#" id="userMenu"
+                                   role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="avatar">@((User.FindFirst("DisplayName")?.Value ?? User.Identity.Name ?? "U").Substring(0, 1))</span>
+                                    <span>@(User.FindFirst("DisplayName")?.Value ?? User.Identity.Name)</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                            <svg class="ico me-1" aria-hidden="true"><use href="#i-user" /></svg> 个人资料
+                                        </a>
+                                    </li>
+                                    @if (User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Editor) || User.IsInRole(Roles.Writer))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                                <svg class="ico me-1" aria-hidden="true"><use href="#i-grid" /></svg> 后台管理
+                                            </a>
+                                        </li>
+                                    }
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            <button type="submit" class="dropdown-item">
+                                                <svg class="ico me-1" aria-hidden="true"><use href="#i-logout" /></svg> 退出登录
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Login">登录</a>
+                            </li>
+                            <li class="nav-item ms-lg-1">
+                                <a class="btn btn-sm btn-primary px-3" asp-controller="Account" asp-action="Register">注册</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="site-main">
+        <div class="container py-4">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <svg class="ico me-1" aria-hidden="true"><use href="#i-check" /></svg>
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                </div>
+            }
+
+            <div class="row g-4">
+                <div class="@(fullWidth ? "col-12" : "col-lg-9")">
+                    @RenderBody()
+                </div>
+                @if (!fullWidth)
+                {
+                    <div class="col-lg-3">
+                        <aside class="sidebar">
+                            @if (IsSectionDefined("Sidebar"))
+                            {
+                                @await RenderSectionAsync("Sidebar", required: false)
+                            }
+                            else
+                            {
+                                <partial name="_Sidebar" />
+                            }
+                        </aside>
+                    </div>
+                }
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <a class="footer-brand" asp-controller="Home" asp-action="Index">
+                        <span class="brand-mark">
+                            @if (!string.IsNullOrEmpty(site.Logo))
+                            {
+                                <img src="@site.Logo" alt="@siteName" />
+                            }
+                            else
+                            {
+                                @initial
+                            }
+                        </span>
+                        @siteName
+                    </a>
+                    <p class="footer-desc">@site.SiteDescription</p>
+                </div>
+
+                <div>
+                    <div class="footer-title">浏览</div>
+                    <div class="footer-links">
+                        <a asp-controller="Archive" asp-action="Index">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-archive" /></svg> 文章归档
+                        </a>
+                        <a asp-controller="Category" asp-action="Index">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-folder" /></svg> 全部分类
+                        </a>
+                        <a asp-controller="Tag" asp-action="Index">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-tag" /></svg> 标签云
+                        </a>
+                        <a asp-controller="Author" asp-action="Index">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-users" /></svg> 作者列表
+                        </a>
+                    </div>
+                </div>
+
+                <div id="links">
+                    <div class="footer-title">友情链接</div>
+                    <div class="footer-links">
+                        @if (links.Any())
+                        {
+                            @foreach (var l in links)
+                            {
+                                <a href="@l.Url" target="_blank" rel="noopener">
+                                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-link" /></svg> @l.Name
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            <span class="footer-desc">暂无链接</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <span>@Html.Raw(string.IsNullOrEmpty(site.FooterText) ? "&copy; 2026 Quill" : site.FooterText)</span>
+                <span>Powered by ASP.NET Core · 用心记录每一个想法</span>
+            </div>
+        </div>
+    </footer>
+
+    <button class="to-top" id="toTop" type="button" aria-label="回到顶部" title="回到顶部">
+        <svg class="ico" aria-hidden="true" style="transform: rotate(-90deg)"><use href="#i-arrow-right" /></svg>
+    </button>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // 主题切换
+        (function () {
+            var btn = document.querySelector('.theme-toggle');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var root = document.documentElement;
+                var isDark = root.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    root.removeAttribute('data-theme');
+                } else {
+                    root.setAttribute('data-theme', 'dark');
+                }
+                try { localStorage.setItem('nb-theme', isDark ? 'light' : 'dark'); } catch (e) { }
+            });
+        })();
+
+        // 回到顶部
+        (function () {
+            var btn = document.getElementById('toTop');
+            if (!btn) return;
+            var onScroll = function () {
+                btn.classList.toggle('show', window.scrollY > 600);
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+            btn.addEventListener('click', function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

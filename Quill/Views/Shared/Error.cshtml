@@ -1,0 +1,28 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "出错了";
+    ViewData["FullWidth"] = true;
+}
+
+<div class="error-page">
+    <div class="error-code">500</div>
+    <h1>页面走神了</h1>
+    <p>服务器在处理这次请求时遇到了问题，请稍后再试。</p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="error-hint">请求编号：<code>@Model.RequestId</code></p>
+    }
+
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Index">返回首页</a>
+    </div>
+
+    <details class="error-details">
+        <summary>开发者信息</summary>
+        <p>
+            将环境切换为 <strong>Development</strong> 可查看详细错误信息；正式环境请勿开启，
+            以免向访客泄露敏感内容。
+        </p>
+    </details>
+</div>

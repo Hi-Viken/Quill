@@ -1,0 +1,333 @@
+@model SiteSettings
+@{
+    ViewData["Title"] = "站点设置";
+
+    var heroMode = string.IsNullOrEmpty(Model.HomeHeroMode) ? HomeHeroModes.Default : Model.HomeHeroMode;
+    var listStyle = string.IsNullOrEmpty(Model.ArticleListStyle) ? ArticleListStyles.List : Model.ArticleListStyle;
+    var latestStyle = string.IsNullOrEmpty(Model.LatestPostsStyle) ? LatestPostsStyles.List : Model.LatestPostsStyle;
+    var banners = HomeBanner.Parse(Model.HomeBannersJson);
+}
+
+<h4 class="mb-3">站点设置</h4>
+
+<form asp-action="Index" method="post" class="card" id="settingsForm">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="HomeBannersJson" id="bannersJson" />
+    <div class="card-body">
+        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="SiteName" class="form-label">站点名称</label>
+                <input asp-for="SiteName" class="form-control" />
+                <span asp-validation-for="SiteName" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Theme" class="form-label">主题</label>
+                <input asp-for="Theme" class="form-control" />
+                <span asp-validation-for="Theme" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="SiteDescription" class="form-label">站点描述</label>
+                <textarea asp-for="SiteDescription" class="form-control" rows="2"></textarea>
+                <div class="form-text">显示在首页首屏标题下方，同时用作站点 SEO 描述。</div>
+                <span asp-validation-for="SiteDescription" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="SiteKeywords" class="form-label">站点关键字</label>
+                <input asp-for="SiteKeywords" class="form-control" />
+                <span asp-validation-for="SiteKeywords" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Logo" class="form-label">站点 Logo 地址</label>
+                <input asp-for="Logo" class="form-control" />
+                <span asp-validation-for="Logo" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="PostsPerPage" class="form-label">每页文章数</label>
+                <input asp-for="PostsPerPage" class="form-control" type="number" min="1" max="100" />
+                <span asp-validation-for="PostsPerPage" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="FooterText" class="form-label">页脚文字</label>
+                <textarea asp-for="FooterText" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+                <label asp-for="CustomHeadHtml" class="form-label">自定义 &lt;head&gt; 代码</label>
+                <textarea asp-for="CustomHeadHtml" class="form-control font-monospace" rows="4"></textarea>
+                <div class="form-text">将原样输出到前台页面的 &lt;head&gt; 中，可用于统计代码等。</div>
+                <span asp-validation-for="CustomHeadHtml" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        @* ---------------- 设置 1：首页首屏 ---------------- *@
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="fw-semibold">首页首屏展示</div>
+                <div class="form-text mb-2">默认展示站点名称、描述与文章数据统计；也可以换成图片轮播。</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="heroMode">首屏内容</label>
+                <select name="HomeHeroMode" id="heroMode" class="form-select">
+                    <option value="default" selected="@(heroMode == HomeHeroModes.Default)">默认（站点介绍 + 数据统计）</option>
+                    <option value="carousel" selected="@(heroMode == HomeHeroModes.Carousel)">轮播图（图片 + 标题 + 链接）</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <div class="form-text mb-1">
+                    轮播图按下面顺序播放，每张可单独配置标题、副标题、跳转链接；标题与副标题会显示在图片内部的下沿（通栏字幕条），不会超出图片范围。未配置图片时自动回落到默认首屏。
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3" id="bannerWrap">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold small">轮播图配置</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="bannerAdd">
+                    + 添加一张
+                </button>
+            </div>
+
+            <div id="bannerList">
+                @foreach (var b in banners)
+                {
+                    <div class="card mb-2 banner-row">
+                        <div class="card-body py-3">
+                            <div class="row g-2 align-items-start">
+                                <div class="col-lg-5">
+                                    <label class="form-label small mb-1 text-muted">图片地址</label>
+                                    <input class="form-control form-control-sm b-image" value="@b.Image"
+                                           placeholder="/f/xxx?share=… 或 https://…" />
+                                </div>
+                                <div class="col-lg-3">
+                                    <label class="form-label small mb-1 text-muted">标题</label>
+                                    <input class="form-control form-control-sm b-title" value="@b.Title" placeholder="显示在图片底部，可选" />
+                                </div>
+                                <div class="col-lg-4">
+                                    <label class="form-label small mb-1 text-muted">副标题</label>
+                                    <input class="form-control form-control-sm b-sub" value="@b.Subtitle" placeholder="可选" />
+                                </div>
+                                <div class="col-lg-4">
+                                    <label class="form-label small mb-1 text-muted">跳转链接</label>
+                                    <input class="form-control form-control-sm b-link" value="@b.Link"
+                                           placeholder="/category/tech 或 https://…" />
+                                </div>
+                                <div class="col-lg-3">
+                                    <label class="form-label small mb-1 text-muted">按钮文字</label>
+                                    <input class="form-control form-control-sm b-text" value="@b.LinkText" placeholder="留空则不显示按钮" />
+                                </div>
+                                <div class="col-lg-2">
+                                    <label class="form-label small mb-1 text-muted d-block">新窗口</label>
+                                    <input class="form-check-input b-new" type="checkbox" checked="@b.NewWindow" />
+                                </div>
+                                <div class="col-lg-3 d-flex align-items-end justify-content-end gap-2">
+                                    <img class="b-preview border rounded" alt="" src="@b.Image"
+                                         style="width:96px;height:54px;object-fit:cover;@(b.HasImage ? "" : "display:none;")" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger b-remove">移除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="form-text" id="bannerEmpty" style="@(banners.Count == 0 ? "" : "display:none;")">
+                还没有轮播图，点「添加一张」开始配置。
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="row g-3">
+            <div class="col-12 fw-semibold">列表展示</div>
+
+            @* ---------------- 设置 2：文章列表 ---------------- *@
+            <div class="col-md-6">
+                <label class="form-label" for="listStyle">文章列表呈现</label>
+                <select name="ArticleListStyle" id="listStyle" class="form-select">
+                    <option value="list" selected="@(listStyle == ArticleListStyles.List)">当前模式（横向列表，右侧缩略图）</option>
+                    <option value="grid" selected="@(listStyle == ArticleListStyles.Grid)">封面 + 标题（一行多个卡片）</option>
+                </select>
+                <div class="form-text">作用于首页、全部文章、分类、标签、归档、作者与搜索结果。</div>
+            </div>
+
+            @* ---------------- 设置 3：侧栏最新文章 ---------------- *@
+            <div class="col-md-6">
+                <label class="form-label" for="latestStyle">侧栏「最新文章」</label>
+                <select name="LatestPostsStyle" id="latestStyle" class="form-select">
+                    <option value="list" selected="@(latestStyle == LatestPostsStyles.List)">当前模式（序号 + 标题 + 日期）</option>
+                    <option value="card" selected="@(latestStyle == LatestPostsStyles.Card)">封面 + 标题</option>
+                </select>
+                <div class="form-text">位于文章页 / 列表页侧边栏的最新文章模块。</div>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="row g-3">
+            <div class="col-12 fw-semibold">功能开关</div>
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input asp-for="AllowComments" class="form-check-input" />
+                    <label asp-for="AllowComments" class="form-check-label">开启评论功能</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="RequireCommentApproval" class="form-check-input" />
+                    <label asp-for="RequireCommentApproval" class="form-check-label">评论需审核后显示</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input asp-for="AllowVisitorComment" class="form-check-input" />
+                    <label asp-for="AllowVisitorComment" class="form-check-label">允许游客评论</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="AllowRegistration" class="form-check-input" />
+                    <label asp-for="AllowRegistration" class="form-check-label">开放用户注册</label>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        @* ---------------- 设置 4：图片水印（仅配置） ---------------- *@
+        <div class="row g-3">
+            <div class="col-12 fw-semibold">图片水印（仅配置，业务未实现）</div>
+            <div class="col-md-6">
+                <div class="form-check mb-2">
+                    <input asp-for="EnableWatermark" class="form-check-input" />
+                    <label asp-for="EnableWatermark" class="form-check-label">开启图片水印</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="wmPos">水印位置</label>
+                <select name="WatermarkPosition" id="wmPos" class="form-select">
+                    @foreach (var o in WatermarkPositions.Options)
+                    {
+                        <option value="@o.Value" selected="@(Model.WatermarkPosition == o.Value)">@o.Text</option>
+                    }
+                </select>
+                <div class="form-text">仅做配置项，实际打水印业务暂未实现。</div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+        <button type="submit" class="btn btn-primary">保存设置</button>
+        <span class="text-muted small">保存上方所有设置后点击保存。</span>
+        <span class="ms-auto d-flex gap-2">
+            <form asp-action="RefreshCache" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-secondary">刷新缓存</button>
+            </form>
+            <form asp-action="ClearCache" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-secondary">清理缓存</button>
+            </form>
+        </span>
+    </div>
+</form>
+
+<script>
+    (function () {
+        var list = document.getElementById('bannerList');
+        var empty = document.getElementById('bannerEmpty');
+        var addBtn = document.getElementById('bannerAdd');
+        var hidden = document.getElementById('bannersJson');
+        var wrap = document.getElementById('bannerWrap');
+        var heroMode = document.getElementById('heroMode');
+        if (!list || !addBtn) return;
+
+        function refreshEmpty() {
+            if (empty) empty.style.display = list.querySelectorAll('.banner-row').length ? 'none' : '';
+        }
+
+        function syncPreview(row) {
+            var img = row.querySelector('.b-preview');
+            var url = row.querySelector('.b-image').value.trim();
+            if (!img) return;
+            if (url) { img.src = url; img.style.display = ''; }
+            else { img.removeAttribute('src'); img.style.display = 'none'; }
+        }
+
+        function buildRow() {
+            var row = document.createElement('div');
+            row.className = 'card mb-2 banner-row';
+            row.innerHTML =
+                '<div class="card-body py-3">' +
+                    '<div class="row g-2 align-items-start">' +
+                        '<div class="col-lg-5"><label class="form-label small mb-1 text-muted">图片地址</label>' +
+                            '<input class="form-control form-control-sm b-image" placeholder="/f/xxx?share=… 或 https://…" /></div>' +
+                        '<div class="col-lg-3"><label class="form-label small mb-1 text-muted">标题</label>' +
+                            '<input class="form-control form-control-sm b-title" placeholder="显示在图片底部，可选" /></div>' +
+                        '<div class="col-lg-4"><label class="form-label small mb-1 text-muted">副标题</label>' +
+                            '<input class="form-control form-control-sm b-sub" placeholder="可选" /></div>' +
+                        '<div class="col-lg-4"><label class="form-label small mb-1 text-muted">跳转链接</label>' +
+                            '<input class="form-control form-control-sm b-link" placeholder="/category/tech 或 https://…" /></div>' +
+                        '<div class="col-lg-3"><label class="form-label small mb-1 text-muted">按钮文字</label>' +
+                            '<input class="form-control form-control-sm b-text" placeholder="留空则不显示按钮" /></div>' +
+                        '<div class="col-lg-2"><label class="form-label small mb-1 text-muted d-block">新窗口</label>' +
+                            '<input class="form-check-input b-new" type="checkbox" /></div>' +
+                        '<div class="col-lg-3 d-flex align-items-end justify-content-end gap-2">' +
+                            '<img class="b-preview border rounded" alt="" style="width:96px;height:54px;object-fit:cover;display:none;" />' +
+                            '<button type="button" class="btn btn-sm btn-outline-danger b-remove">移除</button></div>' +
+                    '</div>' +
+                '</div>';
+            return row;
+        }
+
+        function syncJson() {
+            if (!hidden) return;
+            var items = [];
+            list.querySelectorAll('.banner-row').forEach(function (row) {
+                var image = row.querySelector('.b-image').value.trim();
+                var title = row.querySelector('.b-title').value.trim();
+                var sub = row.querySelector('.b-sub').value.trim();
+                var link = row.querySelector('.b-link').value.trim();
+                var text = row.querySelector('.b-text').value.trim();
+                if (!image && !title && !sub && !link) return; // 空行忽略
+                items.push({
+                    Image: image,
+                    Title: title,
+                    Subtitle: sub,
+                    Link: link,
+                    LinkText: text,
+                    NewWindow: !!row.querySelector('.b-new').checked
+                });
+            });
+            hidden.value = JSON.stringify(items);
+        }
+
+        addBtn.addEventListener('click', function () {
+            var row = buildRow();
+            list.appendChild(row);
+            refreshEmpty();
+            row.querySelector('.b-image').focus();
+        });
+
+        list.addEventListener('click', function (e) {
+            var btn = e.target.closest('.b-remove');
+            if (!btn) return;
+            var row = btn.closest('.banner-row');
+            if (row) row.remove();
+            refreshEmpty();
+            syncJson();
+        });
+
+        list.addEventListener('input', function (e) {
+            if (e.target.classList.contains('b-image')) syncPreview(e.target.closest('.banner-row'));
+        });
+
+        function toggleWrap() {
+            if (!wrap) return;
+            wrap.style.opacity = heroMode.value === 'carousel' ? '1' : '.55';
+        }
+        heroMode.addEventListener('change', toggleWrap);
+        toggleWrap();
+
+        var form = document.getElementById('settingsForm');
+        if (form) form.addEventListener('submit', syncJson);
+        syncJson();
+    })();
+</script>

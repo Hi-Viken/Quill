@@ -1,0 +1,250 @@
+@using Quill.Models
+@using Quill.Models.ViewModels
+@model ArticleDetailViewModel
+
+@{
+    var a = Model.Article;
+    ViewBag.ArticleId = a.Id;
+    var slug = string.IsNullOrEmpty(a.Slug) ? a.Id.ToString() : a.Slug;
+    var published = a.PublishedAt ?? a.CreatedAt;
+}
+
+@if (ViewData["IsPreview"] != null)
+{
+    <div class="alert alert-warning">
+        <strong>草稿预览</strong>：该文章尚未发布，仅你自己可见。
+    </div>
+}
+
+<nav aria-label="面包屑" class="small">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">首页</a></li>
+        @if (a.Category != null)
+        {
+            <li class="breadcrumb-item">
+                <a asp-controller="Category" asp-action="Details" asp-route-slug="@a.Category.Slug">@a.Category.Name</a>
+            </li>
+        }
+        <li class="breadcrumb-item active">@a.Title</li>
+    </ol>
+</nav>
+
+<article class="article">
+    @if (!string.IsNullOrEmpty(a.CoverImage))
+    {
+        <div class="article-cover">
+            <img src="@a.CoverImage" alt="@a.Title" />
+        </div>
+    }
+    <div class="article-body">
+        <header class="article-head">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                @if (a.Category != null)
+                {
+                    <a class="badge text-bg-primary text-decoration-none"
+                       asp-controller="Category" asp-action="Details" asp-route-slug="@a.Category.Slug">
+                        @a.Category.Name
+                    </a>
+                }
+                @if (a.IsPinned)
+                {
+                    <span class="pin-chip">
+                        <svg class="ico" aria-hidden="true"><use href="#i-bookmark" /></svg> 置顶
+                    </span>
+                }
+                @if (a.Status == ArticleStatus.Draft)
+                {
+                    <span class="badge text-bg-warning">草稿</span>
+                }
+            </div>
+
+            <h1 class="article-title">@a.Title</h1>
+
+            <div class="article-meta">
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-calendar" /></svg>
+                    @published.ToString("yyyy年MM月dd日")
+                </span>
+                @if (a.Author != null)
+                {
+                    <span class="meta-item">
+                        <svg class="ico" aria-hidden="true"><use href="#i-user" /></svg>
+                        <a asp-controller="Author" asp-action="Details" asp-route-id="@a.Author.Id">@a.Author.DisplayNameOrName</a>
+                    </span>
+                }
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-eye" /></svg>
+                    @a.ViewCount 次阅读
+                </span>
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+                    @Model.CommentCount 条评论
+                </span>
+            </div>
+
+            @if (a.Tags != null && a.Tags.Any())
+            {
+                <div class="article-tags">
+                    <span class="tags-label">标签</span>
+                    @foreach (var t in a.Tags)
+                    {
+                        <a asp-controller="Tag" asp-action="Details" asp-route-slug="@t.Slug" class="tag-chip">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-tag" /></svg> @t.Name
+                        </a>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(a.Summary))
+            {
+                <div class="article-summary">@a.Summary</div>
+            }
+        </header>
+
+        <div class="post-content">
+            @Html.Raw(a.ContentHtml)
+        </div>
+
+        <div class="article-actions">
+            <button id="likeBtn" type="button"
+                    class="like-btn @(Model.Liked ? "is-liked" : "")"
+                    data-article-id="@a.Id"
+                    aria-pressed="@(Model.Liked ? "true" : "false")">
+                <span class="heart" id="likeIcon">@(Model.Liked ? "♥" : "♡")</span>
+                赞 <span id="likeCount">@Model.LikeCount</span>
+            </button>
+            <a class="like-btn" href="#comments">
+                <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+                评论 @Model.CommentCount
+            </a>
+            <button id="copyLink" type="button" class="like-btn" data-url="@Context.Request.Path">
+                <svg class="ico" aria-hidden="true"><use href="#i-share" /></svg>
+                <span class="label">复制链接</span>
+            </button>
+        </div>
+    </div>
+</article>
+
+@if (Model.Related != null && Model.Related.Any())
+{
+    <section class="related">
+        <div class="widget-title">
+            <svg class="ico" aria-hidden="true"><use href="#i-spark" /></svg> 相关文章
+        </div>
+        <ul class="related-list">
+            @foreach (var r in Model.Related)
+            {
+                <li>
+                    <a asp-controller="Article" asp-action="Details"
+                       asp-route-id="@(string.IsNullOrEmpty(r.Slug) ? r.Id.ToString() : r.Slug)">
+                        <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+                        <span>
+                            @r.Title
+                            <span class="date">@(r.PublishedAt?.ToString("yyyy-MM-dd") ?? r.CreatedAt.ToString("yyyy-MM-dd"))</span>
+                        </span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+<section id="comments" class="comments-card">
+    <div class="comments-head">
+        <h2>
+            <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+            评论
+            <span class="count-pill">@Model.CommentCount</span>
+        </h2>
+    </div>
+
+    @if (Model.CanComment)
+    {
+        <partial name="_CommentForm" model="Model.Input" />
+    }
+    else
+    {
+        <div class="alert alert-light mb-4">本文已关闭评论。</div>
+    }
+
+    @if (Model.Comments.Any())
+    {
+        <div class="mt-4">
+            <partial name="_CommentTree" model="Model.Comments" />
+        </div>
+    }
+    else
+    {
+        <div class="empty-state" style="padding:2.5rem 1rem;">
+            <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+            <p>还没有评论，来说两句吧~</p>
+        </div>
+    }
+</section>
+
+<partial name="_ArticleRail" />
+
+@section Scripts {
+    <script>
+        // 回复框展开/收起
+        document.querySelectorAll('.reply-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var el = document.getElementById(btn.dataset.target);
+                if (el) {
+                    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+                }
+            });
+        });
+
+        // 点赞（登录用户按用户去重，游客按 IP 去重，可取消）
+        (function () {
+            var btn = document.getElementById('likeBtn');
+            if (!btn) return;
+            var busy = false;
+            btn.addEventListener('click', async function () {
+                if (busy) return;
+                busy = true;
+                try {
+                    var id = btn.dataset.articleId;
+                    var res = await fetch('/Like/Toggle', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'articleId=' + encodeURIComponent(id)
+                    });
+                    var data = await res.json();
+                    if (data.success) {
+                        document.getElementById('likeCount').textContent = data.count;
+                        document.getElementById('likeIcon').textContent = data.liked ? '♥' : '♡';
+                        btn.classList.toggle('is-liked', data.liked);
+                        btn.setAttribute('aria-pressed', data.liked ? 'true' : 'false');
+                        if (data.liked) {
+                            btn.classList.add('pop');
+                            setTimeout(function () { btn.classList.remove('pop'); }, 400);
+                        }
+                    }
+                } catch (e) {
+                    console.error('点赞失败', e);
+                } finally {
+                    busy = false;
+                }
+            });
+        })();
+
+        // 复制链接
+        (function () {
+            var btn = document.getElementById('copyLink');
+            if (!btn || !navigator.clipboard) return;
+            btn.addEventListener('click', async function () {
+                var label = btn.querySelector('.label');
+                try {
+                    await navigator.clipboard.writeText(location.href);
+                    label.textContent = '已复制';
+                    setTimeout(function () { label.textContent = '复制链接'; }, 1800);
+                } catch (e) {
+                    label.textContent = '复制失败';
+                    setTimeout(function () { label.textContent = '复制链接'; }, 1800);
+                }
+            });
+        })();
+    </script>
+}

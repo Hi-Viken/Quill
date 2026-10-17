@@ -1,0 +1,119 @@
+@model Article
+@{
+    var tags = ViewBag.Tags as List<Tag> ?? new List<Tag>();
+    var selectedTagIds = ViewBag.SelectedTagIds as List<int> ?? new List<int>();
+}
+
+<div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label">标题</label>
+            <input asp-for="Title" class="form-control" placeholder="请输入文章标题" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Slug" class="form-label">Slug（访问别名）</label>
+            <input asp-for="Slug" class="form-control" placeholder="留空则自动生成" />
+            <div class="form-text">填写英文别名后，文章链接为 /post/别名；留空将自动使用 post-编号。</div>
+            <span asp-validation-for="Slug" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ContentMarkdown" class="form-label">正文（Markdown）</label>
+            <textarea asp-for="ContentMarkdown" class="form-control font-monospace" rows="18"></textarea>
+            <span asp-validation-for="ContentMarkdown" class="text-danger small"></span>
+            <button type="button" id="btnPreview" class="btn btn-sm btn-outline-secondary mt-2">预览正文</button>
+            <div id="previewBox" class="border rounded p-3 mt-2 bg-white" style="display:none;"></div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Summary" class="form-label">摘要</label>
+            <textarea asp-for="Summary" class="form-control" rows="3" placeholder="留空则自动截取正文前段"></textarea>
+            <span asp-validation-for="Summary" class="text-danger small"></span>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">发布设置</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="Status" class="form-label">状态</label>
+                    <select asp-for="Status" class="form-select" asp-items="ViewBag.StatusList"></select>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="CategoryId" class="form-label">分类</label>
+                    <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryList"></select>
+                </div>
+                <div class="form-check mb-2">
+                    <input asp-for="IsPinned" class="form-check-input" />
+                    <label asp-for="IsPinned" class="form-check-label">置顶</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="AllowComment" class="form-check-input" />
+                    <label asp-for="AllowComment" class="form-check-label">允许评论</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">封面图</div>
+            <div class="card-body">
+                <input type="file" name="coverFile" class="form-control mb-2" accept="image/*" />
+                <label asp-for="CoverImage" class="form-label">或直接填写图片地址</label>
+                <input asp-for="CoverImage" class="form-control" placeholder="/uploads/202601/xxx.jpg" />
+                <span asp-validation-for="CoverImage" class="text-danger small"></span>
+                @if (!string.IsNullOrEmpty(Model.CoverImage))
+                {
+                    <img src="@Model.CoverImage" alt="封面预览" class="img-fluid rounded mt-2" />
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">标签</div>
+            <div class="card-body" style="max-height:260px;overflow-y:auto;">
+                @if (tags.Count == 0)
+                {
+                    <p class="text-muted small mb-0">暂无标签，请先到「标签」页面创建。</p>
+                }
+                else
+                {
+                    foreach (var t in tags)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="tagIds"
+                                   value="@t.Id" id="tag_@t.Id"
+                                   checked="@selectedTagIds.Contains(t.Id)" />
+                            <label class="form-check-label" for="tag_@t.Id">@t.Name</label>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const ta = document.getElementById('ContentMarkdown');
+        const btn = document.getElementById('btnPreview');
+        const box = document.getElementById('previewBox');
+        if (!ta || !btn || !box) return;
+
+        btn.addEventListener('click', function () {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            const body = new FormData();
+            body.append('markdown', ta.value || '');
+            if (token) body.append('__RequestVerificationToken', token.value);
+
+            fetch('@Url.Action("PreviewMarkdown", "Articles")', { method: 'POST', body: body })
+                .then(function (r) { return r.text(); })
+                .then(function (html) { box.innerHTML = html; box.style.display = 'block'; })
+                .catch(function () { });
+        });
+    })();
+</script>

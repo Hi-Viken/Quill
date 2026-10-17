@@ -1,0 +1,22 @@
+@model FolderTreeViewModel
+
+<ul class="fm-tree">
+    @foreach (var f in Model.Folders)
+    {
+        <li>
+            <a class="fm-tree-item @(Model.CurrentId == f.Id ? "active" : "")"
+               asp-action="Index" asp-route-folderId="@f.Id" title="@f.Name">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+                <span>@f.Name</span>
+                @if (f.FileCount > 0)
+                {
+                    <span class="fm-tree-count">@f.FileCount</span>
+                }
+            </a>
+            @if (f.Children.Count > 0)
+            {
+                @await Html.PartialAsync("_FolderTree", new FolderTreeViewModel { Folders = f.Children, CurrentId = Model.CurrentId })
+            }
+        </li>
+    }
+</ul>

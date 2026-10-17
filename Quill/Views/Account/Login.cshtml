@@ -1,0 +1,51 @@
+@using Quill.Models.ViewModels
+@model LoginViewModel
+
+@{
+    ViewData["FullWidth"] = true;
+    ViewData["Title"] = "登录";
+}
+
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-head">
+            <span class="brand-mark mark">
+                <svg class="ico" aria-hidden="true"><use href="#i-user" /></svg>
+            </span>
+            <h1>欢迎回来</h1>
+            <p>登录后即可评论互动、管理自己的内容</p>
+        </div>
+
+        <form asp-controller="Account" asp-action="Login" method="post">
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2 small"></div>
+
+            <div class="mb-3">
+                <label asp-for="Account" class="form-label"></label>
+                <input asp-for="Account" class="form-control" autocomplete="username" placeholder="用户名或邮箱" />
+                <span asp-validation-for="Account" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" placeholder="请输入密码" />
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="form-check mb-3">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label small"></label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">登录</button>
+        </form>
+
+        <div class="auth-foot">
+            还没有账号？<a asp-controller="Account" asp-action="Register">立即注册</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,714 @@
+@model FileManagerViewModel
+@using Quill.Models
+@{
+    ViewData["Title"] = "文件管理";
+    var folderId = Model.FolderId;
+    var keyword = Model.Keyword;
+    var sort = Model.Sort;
+    var dir = Model.Dir;
+    var itemCount = Model.SubFolders.Count + Model.Files.Items.Count;
+    var pathText = Model.Breadcrumb.Count == 0
+        ? "根目录"
+        : "根目录 / " + string.Join(" / ", Model.Breadcrumb.Select(b => b.Name));
+}
+
+@functions {
+    static string FmtSize(long size)
+    {
+        if (size >= 1024L * 1024 * 1024) return $"{size / 1024.0 / 1024.0 / 1024.0:F2} GB";
+        if (size >= 1024 * 1024) return $"{size / 1024.0 / 1024.0:F1} MB";
+        if (size >= 1024) return $"{size / 1024.0:F0} KB";
+        return $"{size} B";
+    }
+}
+
+@{
+    var sortUrl = new Func<string, string>(key => Url.Action("Index", "Files", new
+    {
+        area = "Admin",
+        folderId,
+        keyword,
+        pageSize = Model.PageSize,
+        sort = key,
+        dir = sort == key && dir == "asc" ? "desc" : "asc"
+    }) ?? "#");
+    var url = new Func<string, string>(action => Url.Action(action, "Files", new { area = "Admin" }) ?? "#");
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/filemanager.css" asp-append-version="true" />
+}
+
+<div class="fm-app" id="fmApp"
+     data-folder="@folderId"
+     data-url-index="@url("Index")"
+     data-url-upload-init="@url("UploadInit")"
+     data-url-upload-chunk="@url("UploadChunk")"
+     data-url-upload-complete="@url("UploadComplete")"
+     data-url-upload-abort="@url("UploadAbort")"
+     data-url-share="@url("CreateShare")"
+     data-url-markdown="@url("Markdown")"
+     data-url-rename-file="@url("RenameFile")"
+     data-url-rename-folder="@url("RenameFolder")"
+     data-url-move-file="@url("MoveSelected")"
+     data-url-move-folder="@url("MoveFolder")"
+     data-url-delete-file="@url("DeleteSelected")"
+     data-url-delete-folder="@url("DeleteFolder")">
+
+    <!-- ================= 工具栏 ================= -->
+    <div class="fm-toolbar">
+        <div class="fm-toolgroup">
+            <button type="button" class="fm-btn fm-btn-primary" id="btnUpload" title="上传文件（支持大文件分片）">
+                <svg class="ico" aria-hidden="true"><use href="#i-upload" /></svg>
+                <span>上传</span>
+            </button>
+            <button type="button" class="fm-btn" data-bs-toggle="modal" data-bs-target="#newFolderModal" title="新建文件夹">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+                <span class="d-none d-lg-inline">新建文件夹</span>
+            </button>
+            <span class="fm-sep"></span>
+            <button type="button" class="fm-btn" id="btnShare" disabled title="生成分享链接">
+                <svg class="ico" aria-hidden="true"><use href="#i-share" /></svg>
+                <span class="d-none d-md-inline">分享</span>
+            </button>
+            <button type="button" class="fm-btn" id="btnMarkdown" disabled title="把选中的文件生成 Markdown，可直接粘贴到文章里">
+                <svg class="ico" aria-hidden="true"><use href="#i-code" /></svg>
+                <span class="d-none d-md-inline">Markdown</span>
+            </button>
+            <button type="button" class="fm-btn" id="btnDownload" disabled title="下载">
+                <svg class="ico" aria-hidden="true"><use href="#i-download" /></svg>
+                <span class="d-none d-md-inline">下载</span>
+            </button>
+            <button type="button" class="fm-btn" id="btnMove" disabled title="移动到…">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+                <span class="d-none d-md-inline">移动</span>
+            </button>
+            <button type="button" class="fm-btn fm-btn-danger" id="btnDelete" disabled title="删除">
+                <svg class="ico" aria-hidden="true"><use href="#i-trash" /></svg>
+                <span class="d-none d-md-inline">删除</span>
+            </button>
+        </div>
+
+        <div class="fm-toolgroup fm-right">
+            <form class="fm-search" method="get" asp-action="Index">
+                <input type="hidden" name="folderId" value="@folderId" />
+                <input type="hidden" name="sort" value="@sort" />
+                <input type="hidden" name="dir" value="@dir" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+                <input type="search" name="keyword" value="@keyword" placeholder="搜索文件…" aria-label="搜索文件" />
+            </form>
+            <a class="fm-btn fm-icon-btn" asp-action="Shares" title="分享管理" aria-label="分享管理">
+                <svg class="ico" aria-hidden="true"><use href="#i-link" /></svg>
+            </a>
+            <button type="button" class="fm-btn fm-icon-btn" id="btnPane" title="显示/隐藏详细信息" aria-label="显示或隐藏详细信息">
+                <svg class="ico" aria-hidden="true"><use href="#i-info" /></svg>
+            </button>
+            <a class="fm-btn fm-icon-btn" asp-action="Index" asp-route-folderId="@folderId"
+               asp-route-sort="@sort" asp-route-dir="@dir" asp-route-pageSize="@Model.PageSize" title="刷新" aria-label="刷新">
+                <svg class="ico" aria-hidden="true"><use href="#i-refresh" /></svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= 地址栏 ================= -->
+    <div class="fm-address">
+        @if (Model.Breadcrumb.Count > 0)
+        {
+            var parentId = Model.Breadcrumb.Count > 1 ? Model.Breadcrumb[^2].Id : (int?)null;
+            <a class="fm-nav-btn" href="@Url.Action("Index", "Files", new { area = "Admin", folderId = parentId, sort, dir, pageSize = Model.PageSize })" title="上一级">
+                <svg class="ico" aria-hidden="true"><use href="#i-chevron-up" /></svg>
+            </a>
+        }
+        else
+        {
+            <span class="fm-nav-btn disabled"><svg class="ico" aria-hidden="true"><use href="#i-chevron-up" /></svg></span>
+        }
+
+        <div class="fm-path" title="@(keyword == null ? pathText : $"搜索“{keyword}”")">
+            <a asp-action="Index" asp-route-pageSize="@Model.PageSize">
+                <svg class="ico ico-sm" aria-hidden="true"><use href="#i-home" /></svg>
+                根目录
+            </a>
+            @if (keyword != null)
+            {
+                <span class="sep">›</span>
+                <span class="cur">搜索“@keyword”</span>
+            }
+            else
+            {
+                @for (var i = 0; i < Model.Breadcrumb.Count; i++)
+                {
+                    var b = Model.Breadcrumb[i];
+                    <span class="sep">›</span>
+                    @if (i == Model.Breadcrumb.Count - 1)
+                    {
+                        <span class="cur">@b.Name</span>
+                    }
+                    else
+                    {
+                        <a asp-action="Index" asp-route-folderId="@b.Id" asp-route-sort="@sort" asp-route-dir="@dir" asp-route-pageSize="@Model.PageSize">@b.Name</a>
+                    }
+                }
+            }
+        </div>
+
+        <div class="fm-address-right">
+            <span class="fm-secure" title="文件存放在私有目录，需登录或分享链接才能访问">
+                <svg class="ico" aria-hidden="true"><use href="#i-lock" /></svg>
+                私有存储
+            </span>
+        </div>
+    </div>
+
+    <!-- ================= 主体 ================= -->
+    <div class="fm-body">
+        <aside class="fm-sidebar">
+            <div class="fm-side-title">
+                <span>目录</span>
+            </div>
+            <ul class="fm-tree">
+                <li>
+                    <a class="fm-tree-item is-root @(folderId == null ? "active" : "")" asp-action="Index" asp-route-sort="@sort" asp-route-dir="@dir" asp-route-pageSize="@Model.PageSize">
+                        <svg class="ico" aria-hidden="true"><use href="#i-home" /></svg>
+                        <span>根目录</span>
+                    </a>
+                </li>
+            </ul>
+            @await Html.PartialAsync("_FolderTree", new FolderTreeViewModel { Folders = Model.FolderTree, CurrentId = folderId })
+        </aside>
+
+        <div class="fm-main">
+            <div class="fm-listhead">
+                <label class="fm-check" title="全选">
+                    <input type="checkbox" id="checkAll" aria-label="全选" />
+                </label>
+                <a class="fm-sort @(sort == "name" ? "active" : "")" href="@sortUrl("name")">
+                    名称
+                    @if (sort == "name")
+                    {
+                        <span class="arrow">@(dir == "asc" ? "↑" : "↓")</span>
+                    }
+                </a>
+                <a class="fm-sort fm-col-date @(sort == "date" ? "active" : "")" href="@sortUrl("date")">
+                    修改日期
+                    @if (sort == "date")
+                    {
+                        <span class="arrow">@(dir == "asc" ? "↑" : "↓")</span>
+                    }
+                </a>
+                <a class="fm-sort fm-col-type @(sort == "type" ? "active" : "")" href="@sortUrl("type")">
+                    类型
+                    @if (sort == "type")
+                    {
+                        <span class="arrow">@(dir == "asc" ? "↑" : "↓")</span>
+                    }
+                </a>
+                <a class="fm-sort fm-num @(sort == "size" ? "active" : "")" href="@sortUrl("size")">
+                    大小
+                    @if (sort == "size")
+                    {
+                        <span class="arrow">@(dir == "asc" ? "↑" : "↓")</span>
+                    }
+                </a>
+                <span class="fm-col-share">共享</span>
+                <span class="fm-col-uploader">上传者</span>
+            </div>
+
+            <div class="fm-list" id="fmList" tabindex="0" aria-label="文件列表">
+                @foreach (var f in Model.SubFolders)
+                {
+                    var token = Model.FolderShareTokens.GetValueOrDefault(f.Id);
+                    <div class="fm-row" role="row" tabindex="0"
+                         data-kind="folder"
+                         data-id="@f.Id"
+                         data-name="@f.Name"
+                         data-type="文件夹"
+                         data-size="0"
+                         data-date="@f.CreatedAt.ToString("yyyy-MM-dd HH:mm")"
+                         data-uploader=""
+                         data-share="@token"
+                         data-desc="@f.Description"
+                         data-sort="@f.SortOrder"
+                         data-count="@f.FileCount"
+                         data-href="@Url.Action("Index", "Files", new { area = "Admin", folderId = f.Id, sort, dir })">
+                        <label class="fm-check" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="fm-row-check" aria-label="选择 @f.Name" />
+                        </label>
+                        <div class="fm-name">
+                            <span class="fm-icon k-folder">
+                                <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+                            </span>
+                            <span class="label" title="@f.Name">@f.Name</span>
+                        </div>
+                        <span class="fm-cell fm-col-date">@f.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        <span class="fm-cell fm-col-type">文件夹</span>
+                        <span class="fm-cell fm-num">@(f.FileCount > 0 ? $"{f.FileCount} 项" : "—")</span>
+                        <span class="fm-cell fm-col-share">
+                            @if (!string.IsNullOrEmpty(token))
+                            {
+                                <span class="fm-badge folder-shared">已共享</span>
+                            }
+                            else
+                            {
+                                <span class="fm-badge off">私有</span>
+                            }
+                        </span>
+                        <span class="fm-cell fm-col-uploader">—</span>
+                    </div>
+                }
+
+                @foreach (var m in Model.Files.Items)
+                {
+                    <div class="fm-row" role="row" tabindex="0"
+                         data-kind="file"
+                         data-id="@m.Id"
+                         data-name="@m.FileName"
+                         data-type="@m.TypeText"
+                         data-size="@m.Size"
+                         data-size-text="@m.SizeText"
+                         data-date="@m.UploadedAt.ToString("yyyy-MM-dd HH:mm")"
+                         data-uploader="@m.UploadedByName"
+                         data-share="@m.ShareToken"
+                         data-public="@(m.IsPublic ? "1" : "0")"
+                         data-key="@m.FileKey"
+                         data-url="@m.AccessUrl"
+                         data-download="@m.DownloadUrl"
+                         data-ext="@m.Extension"
+                         data-kindcls="@m.Kind"
+                         data-image="@(m.IsImage ? "1" : "0")">
+                        <label class="fm-check" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="fm-row-check" aria-label="选择 @m.FileName" />
+                        </label>
+                        <div class="fm-name">
+                            @if (m.IsImage)
+                            {
+                                <img class="fm-thumb" src="@m.AccessUrl" alt="" loading="lazy" />
+                            }
+                            else
+                            {
+                                <span class="fm-icon k-@m.Kind">
+                                    <svg class="ico" aria-hidden="true"><use href="#@m.IconId" /></svg>
+                                </span>
+                            }
+                            <span class="label" title="@m.FileName">@m.FileName</span>
+                        </div>
+                        <span class="fm-cell fm-col-date">@m.UploadedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        <span class="fm-cell fm-col-type">@m.TypeText</span>
+                        <span class="fm-cell fm-num">@m.SizeText</span>
+                        <span class="fm-cell fm-col-share">
+                            @if (m.IsPublic)
+                            {
+                                <span class="fm-badge pub">公开</span>
+                            }
+                            else if (!string.IsNullOrEmpty(m.ShareToken))
+                            {
+                                <span class="fm-badge shared">已共享</span>
+                            }
+                            else
+                            {
+                                <span class="fm-badge off">私有</span>
+                            }
+                        </span>
+                        <span class="fm-cell fm-col-uploader">@(string.IsNullOrWhiteSpace(m.UploadedByName) ? "—" : m.UploadedByName)</span>
+                    </div>
+                }
+
+                @if (itemCount == 0)
+                {
+                    <div class="fm-empty">
+                        <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+                        @if (keyword != null)
+                        {
+                            <p class="mb-1">没有找到包含“@keyword”的文件</p>
+                            <a asp-action="Index">清除搜索</a>
+                        }
+                        else
+                        {
+                            <p class="mb-1">此文件夹为空</p>
+                            <span>把文件拖到这里，或点击左上角「上传」。</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <aside class="fm-preview" id="fmPreview">
+            <div class="fm-preview-empty" id="pvEmpty">
+                <svg class="ico" aria-hidden="true"><use href="#i-info" /></svg>
+                <span>选择一个文件查看详细信息</span>
+            </div>
+            <div id="pvBody" hidden>
+                <div class="fm-pv-thumb" id="pvThumb"></div>
+                <div class="fm-pv-title" id="pvTitle"></div>
+                <dl class="fm-pv-list">
+                    <dt>类型</dt>
+                    <dd id="pvType"></dd>
+                    <dt>大小</dt>
+                    <dd id="pvSize"></dd>
+                    <dt>修改时间</dt>
+                    <dd id="pvDate"></dd>
+                    <dt>共享</dt>
+                    <dd id="pvScope"></dd>
+                    <dt>文件 Key</dt>
+                    <dd class="fm-pv-key" id="pvKey"></dd>
+                </dl>
+                <div class="fm-pv-actions">
+                    <button type="button" class="fm-btn fm-btn-primary" id="pvOpen">
+                        <svg class="ico" aria-hidden="true"><use href="#i-external" /></svg> 打开
+                    </button>
+                    <button type="button" class="fm-btn" id="pvDownload">
+                        <svg class="ico" aria-hidden="true"><use href="#i-download" /></svg> 下载
+                    </button>
+                    <button type="button" class="fm-btn" id="pvShare">
+                        <svg class="ico" aria-hidden="true"><use href="#i-share" /></svg> 分享
+                    </button>
+                    <button type="button" class="fm-btn" id="pvRename">
+                        <svg class="ico" aria-hidden="true"><use href="#i-edit" /></svg> 重命名
+                    </button>
+                    <button type="button" class="fm-btn fm-btn-danger" id="pvDelete">
+                        <svg class="ico" aria-hidden="true"><use href="#i-trash" /></svg> 删除
+                    </button>
+                </div>
+                <div class="fm-pv-note">
+                    文件存放在 <code>App_Data/media</code> 私有目录，链接形如 <code>/f/{key}</code>；
+                    未共享的文件只有后台登录用户能访问。
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ================= 状态栏 ================= -->
+    <div class="fm-status">
+        <span><b id="fmCount">@itemCount</b> 个项目</span>
+        <span id="fmSelText">未选择</span>
+        <span>共 <b>@Model.Files.TotalCount</b> 个文件 · @FmtSize(Model.TotalSize)</span>
+        <div class="fm-pager">
+            @if (Model.Files.TotalPages > 1)
+            {
+                <a class="@(Model.Files.HasPrev ? "" : "disabled")"
+                   asp-action="Index" asp-route-folderId="@folderId" asp-route-keyword="@keyword"
+                   asp-route-sort="@sort" asp-route-dir="@dir" asp-route-page="@(Model.Files.Page - 1)" asp-route-pageSize="@Model.PageSize">上一页</a>
+                <span class="num">@Model.Files.Page / @Model.Files.TotalPages</span>
+                <a class="@(Model.Files.HasNext ? "" : "disabled")"
+                   asp-action="Index" asp-route-folderId="@folderId" asp-route-keyword="@keyword"
+                   asp-route-sort="@sort" asp-route-dir="@dir" asp-route-page="@(Model.Files.Page + 1)" asp-route-pageSize="@Model.PageSize">下一页</a>
+            }
+            else
+            {
+                <span class="num">第 1 页</span>
+            }
+            <form class="fm-pagesize" method="get" asp-action="Index">
+                <input type="hidden" name="folderId" value="@folderId" />
+                <input type="hidden" name="keyword" value="@keyword" />
+                <input type="hidden" name="sort" value="@sort" />
+                <input type="hidden" name="dir" value="@dir" />
+                <label>每页
+                    <select name="pageSize" onchange="this.form.submit()" aria-label="每页条数">
+                        @foreach (var ps in new[] { 10, 20, 50, 100 })
+                        {
+                            <option value="@ps" selected="@(Model.PageSize == ps)">@ps</option>
+                        }
+                    </select>
+                </label> 条
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 右键菜单 ================= -->
+<div class="fm-menu" id="fmMenu" hidden role="menu">
+    <button type="button" data-act="open">
+        <svg class="ico" aria-hidden="true"><use href="#i-external" /></svg> 打开
+        <span class="kbd">Enter</span>
+    </button>
+    <button type="button" data-act="download">
+        <svg class="ico" aria-hidden="true"><use href="#i-download" /></svg> 下载
+    </button>
+    <button type="button" data-act="share">
+        <svg class="ico" aria-hidden="true"><use href="#i-share" /></svg> 创建分享链接
+    </button>
+    <button type="button" data-act="copy">
+        <svg class="ico" aria-hidden="true"><use href="#i-link" /></svg> 复制分享链接
+    </button>
+    <button type="button" data-act="markdown">
+        <svg class="ico" aria-hidden="true"><use href="#i-code" /></svg> 生成 Markdown
+    </button>
+    <hr />
+    <button type="button" data-act="rename">
+        <svg class="ico" aria-hidden="true"><use href="#i-edit" /></svg> 重命名
+        <span class="kbd">F2</span>
+    </button>
+    <button type="button" data-act="move">
+        <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg> 移动到…
+    </button>
+    <button type="button" data-act="delete" class="danger">
+        <svg class="ico" aria-hidden="true"><use href="#i-trash" /></svg> 删除
+        <span class="kbd">Del</span>
+    </button>
+</div>
+
+<!-- ================= 上传弹窗 ================= -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">上传文件</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div class="fm-upload">
+                    <div class="fm-drop" id="upDrop">
+                        <svg class="ico" aria-hidden="true"><use href="#i-upload" /></svg>
+                        <strong>点击选择文件，或拖拽到这里</strong>
+                        <small>支持图片、文档、压缩包、音视频；单文件最大 2 GB</small>
+                        <small>大文件自动按 8 MB 分片上传，可实时查看进度</small>
+                        <input type="file" id="upInput" multiple hidden />
+                    </div>
+                    <div class="fm-queue" id="upQueue">
+                        <div class="fm-queue-empty">尚未选择文件</div>
+                    </div>
+                    <div class="fm-upload-total" id="upTotal" hidden>
+                        <div class="fm-upload-total-text">
+                            <span id="upTotalText">0 / 0</span>
+                            <span id="upSpeed"></span>
+                        </div>
+                        <div class="fm-up-bar"><div class="fm-up-fill" id="upTotalFill"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-muted small me-auto">上传到：<strong>@(Model.CurrentFolder?.Name ?? "根目录")</strong></span>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-sm btn-primary" id="upStart" disabled>开始上传</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 新建文件夹 ================= -->
+<div class="modal fade" id="newFolderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form asp-action="CreateFolder" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h6 class="modal-title">新建文件夹</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="parentId" value="@folderId" />
+                <div class="mb-2">
+                    <label class="form-label small">文件夹名称</label>
+                    <input type="text" name="name" class="form-control" required maxlength="120" placeholder="例如：封面图" />
+                </div>
+                <div>
+                    <label class="form-label small">备注（可选）</label>
+                    <input type="text" name="description" class="form-control" maxlength="500" />
+                </div>
+                <div class="text-muted small mt-2">
+                    创建位置：<strong>@(Model.CurrentFolder?.Name ?? "根目录")</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="submit" class="btn btn-sm btn-primary">创建</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= 重命名 ================= -->
+<div class="modal fade" id="renameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="renameForm" asp-action="RenameFile" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="rnId" />
+            <input type="hidden" name="folderId" value="@folderId" />
+            <div class="modal-header">
+                <h6 class="modal-title" id="rnTitle">重命名</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div id="rnFileWrap">
+                    <div class="mb-2">
+                        <label class="form-label small">文件名称</label>
+                        <input type="text" name="fileName" id="rnFileName" class="form-control" maxlength="200" required />
+                    </div>
+                    <div>
+                        <label class="form-label small">说明（可选）</label>
+                        <input type="text" name="alt" id="rnAlt" class="form-control" maxlength="200" />
+                    </div>
+                </div>
+                <div id="rnFolderWrap" hidden>
+                    <div class="mb-2">
+                        <label class="form-label small">文件夹名称</label>
+                        <input type="text" name="name" id="rnFolderName" class="form-control" maxlength="120" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">备注</label>
+                        <input type="text" name="description" id="rnDesc" class="form-control" maxlength="500" />
+                    </div>
+                    <div>
+                        <label class="form-label small">排序</label>
+                        <input type="number" name="sortOrder" id="rnSort" class="form-control" value="0" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="submit" class="btn btn-sm btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= 移动 ================= -->
+<div class="modal fade" id="moveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="moveForm" asp-action="MoveSelected" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="folderId" value="@folderId" />
+            <input type="hidden" name="id" id="mvId" />
+            <div id="mvIds"></div>
+            <div class="modal-header">
+                <h6 class="modal-title">移动到</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label small">目标文件夹</label>
+                <select name="targetId" class="form-select">
+                    @foreach (var o in Model.FolderOptions)
+                    {
+                        <option value="@o.Id">@o.Name</option>
+                    }
+                </select>
+                <div class="text-muted small mt-2" id="mvHint"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="submit" class="btn btn-sm btn-primary">移动</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= 分享 ================= -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="shareForm" asp-action="CreateShare" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="mediaId" id="shMedia" value="0" />
+            <input type="hidden" name="folderId" id="shFolder" value="0" />
+            <input type="hidden" name="currentFolderId" value="@folderId" />
+            <div class="modal-header">
+                <h6 class="modal-title">生成分享链接</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div id="shFormWrap">
+                    <div class="mb-2">
+                        <label class="form-label small">分享对象</label>
+                        <div class="form-control-plaintext small" id="shTarget" style="padding-top:0;"></div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">有效期</label>
+                        <select name="expireDays" class="form-select">
+                            <option value="0">永久有效</option>
+                            <option value="1">1 天</option>
+                            <option value="7" selected>7 天</option>
+                            <option value="30">30 天</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label small">访问密码（可选）</label>
+                        <input type="text" name="password" class="form-control" maxlength="60" placeholder="留空表示无需密码" />
+                    </div>
+                    <div class="text-muted small mt-2">
+                        分享链接形如 <code>/share/{token}</code>，未分享的文件无法通过 <code>/f/{key}</code> 访问。
+                    </div>
+                </div>
+                <div class="fm-share-result" id="shResult">
+                    <div class="mb-2 small text-muted">分享链接已生成，复制发给对方即可访问（无需登录）：</div>
+                    <div class="fm-share-link">
+                        <input type="text" class="form-control form-control-sm" id="shUrl" readonly />
+                        <button type="button" class="btn btn-sm btn-primary" id="shCopy">复制</button>
+                        <a class="btn btn-sm btn-outline-secondary" id="shOpen" target="_blank" rel="noopener">打开</a>
+                    </div>
+                    <div class="fm-share-tip">可在「分享管理」中随时停用或删除链接。</div>
+                    <div class="text-danger small mt-2" id="shError" hidden></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="submit" class="btn btn-sm btn-primary" id="shSubmit">生成链接</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= 生成 Markdown ================= -->
+<div class="modal fade" id="mdModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">生成 Markdown</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div class="fm-md-opts">
+                    <label class="fm-md-field">
+                        <span>输出样式</span>
+                        <select class="form-select form-select-sm" id="mdStyle">
+                            <option value="auto" selected>智能：图片用图片语法，其它用链接</option>
+                            <option value="image">全部按图片输出（图集）</option>
+                            <option value="link">纯链接，一行一个</option>
+                            <option value="table">表格：文件名 / 类型 / 大小</option>
+                        </select>
+                    </label>
+                    <label class="fm-md-check">
+                        <input type="checkbox" id="mdShare" checked />
+                        <span>为私有文件自动创建分享链接<em>（读者无需登录）</em></span>
+                    </label>
+                    <label class="fm-md-check">
+                        <input type="checkbox" id="mdMeta" checked />
+                        <span>链接后附带文件大小</span>
+                    </label>
+                </div>
+
+                <div class="fm-md-stat" id="mdStat">正在生成…</div>
+                <textarea class="fm-md-text" id="mdText" readonly spellcheck="false" aria-label="Markdown 内容"></textarea>
+                <div class="fm-md-note" id="mdNote"></div>
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-sm btn-outline-secondary me-auto"
+                   asp-area="Admin" asp-controller="Articles" asp-action="Create" target="_blank" rel="noopener">
+                    新建文章
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-sm btn-primary" id="mdCopy">复制 Markdown</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 图片预览 ================= -->
+<div class="modal fade fm-lightbox" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title text-truncate" id="imgTitle">预览</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <img id="imgPreview" alt="" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="afForm" hidden>@Html.AntiForgeryToken()</form>
+<form id="opForm" method="post" hidden></form>
+
+@section Scripts {
+    <script src="~/js/filemanager.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,137 @@
+@inject Quill.Services.TaxonomyService TaxonomySvc
+@inject Quill.Services.ArticleService ArticleSvc
+@inject Quill.Services.SettingsService SettingsSvc
+@using Quill.Models
+@{
+    var categories = TaxonomySvc.GetCategoriesWithCount();
+    var tags = TaxonomySvc.GetTagCloud(30);
+    var archives = ArticleSvc.GetArchives().Take(12).ToList();
+    var latest = ArticleSvc.GetLatest(5);
+
+    // 侧栏「最新文章」样式由后台设置控制：list 当前模式 / card 封面+标题
+    var latestAsCard = string.Equals(SettingsSvc.Get().LatestPostsStyle, LatestPostsStyles.Card,
+        StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="widget">
+    <div class="widget-head">
+        <span class="widget-title">
+            <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg> 分类
+        </span>
+        <a class="link-more" asp-controller="Category" asp-action="Index">全部</a>
+    </div>
+    <ul class="cat-list">
+        @foreach (var c in categories)
+        {
+            <li>
+                <a asp-controller="Category" asp-action="Details" asp-route-slug="@c.Slug">
+                    <span>@c.Name</span>
+                    <span class="count">@c.ArticleCount</span>
+                </a>
+            </li>
+        }
+        @if (!categories.Any())
+        {
+            <li class="text-muted small py-2">暂无分类</li>
+        }
+    </ul>
+</div>
+
+<div class="widget">
+    <div class="widget-head">
+        <span class="widget-title">
+            <svg class="ico" aria-hidden="true"><use href="#i-tag" /></svg> 标签云
+        </span>
+        <a class="link-more" asp-controller="Tag" asp-action="Index">全部</a>
+    </div>
+    <div class="cloud">
+        @foreach (var t in tags)
+        {
+            <a asp-controller="Tag" asp-action="Details" asp-route-slug="@t.Slug" class="tag-chip">
+                @t.Name <span class="text-muted ms-1">@t.ArticleCount</span>
+            </a>
+        }
+        @if (!tags.Any())
+        {
+            <span class="text-muted small">暂无标签</span>
+        }
+    </div>
+</div>
+
+<div class="widget">
+    <div class="widget-head">
+        <span class="widget-title">
+            <svg class="ico" aria-hidden="true"><use href="#i-archive" /></svg> 归档
+        </span>
+        <a class="link-more" asp-controller="Archive" asp-action="Index">全部</a>
+    </div>
+    <ul class="cat-list">
+        @foreach (var g in archives)
+        {
+            <li>
+                <a asp-controller="Archive" asp-action="Details" asp-route-year="@g.Year" asp-route-month="@g.Month">
+                    <span>@g.Label</span>
+                    <span class="count">@g.Count</span>
+                </a>
+            </li>
+        }
+        @if (!archives.Any())
+        {
+            <li class="text-muted small py-2">暂无归档</li>
+        }
+    </ul>
+</div>
+
+<div class="widget">
+    <div class="widget-head">
+        <span class="widget-title">
+            <svg class="ico" aria-hidden="true"><use href="#i-spark" /></svg> 最新文章
+        </span>
+    </div>
+    @if (latestAsCard)
+    {
+        <div class="latest-cards">
+            @foreach (var a in latest)
+            {
+                var latestUrl = Url.Action("Details", "Article", new { id = a.Slug ?? a.Id.ToString() });
+                <a class="latest-card" href="@latestUrl">
+                    <span class="latest-card-cover">
+                        @if (!string.IsNullOrEmpty(a.CoverImage))
+                        {
+                            <img src="@a.CoverImage" alt="@a.Title" loading="lazy" />
+                        }
+                        else
+                        {
+                            <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+                        }
+                    </span>
+                    <span class="latest-card-title">@a.Title</span>
+                </a>
+            }
+        </div>
+        @if (!latest.Any())
+        {
+            <div class="text-muted small py-2">暂无文章</div>
+        }
+    }
+    else
+    {
+        <ul class="latest-list">
+            @foreach (var a in latest)
+            {
+                <li>
+                    <a asp-controller="Article" asp-action="Details" asp-route-id="@(a.Slug ?? a.Id.ToString())">
+                        <span>
+                            @a.Title
+                            <span class="date">@(a.PublishedAt?.ToString("MM-dd") ?? a.CreatedAt.ToString("MM-dd"))</span>
+                        </span>
+                    </a>
+                </li>
+            }
+            @if (!latest.Any())
+            {
+                <li class="text-muted small py-2">暂无文章</li>
+            }
+        </ul>
+    }
+</div>

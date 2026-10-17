@@ -1,0 +1,60 @@
+@*
+    文章页"返回顶部"按钮：固定在右下角，圆形按钮内嵌环形阅读进度，
+    中心显示百分比、下方一个上箭头表示可点击回顶。仅文章页渲染，
+    并通过 body.has-article-rail 隐藏全局右下角的纯箭头 .to-top，
+    避免页面上出现两个"返回顶部"。
+*@
+<button class="article-backtop" id="articleBackTop" type="button" aria-label="返回顶部" title="返回顶部">
+    <svg class="bt-ring" viewBox="0 0 52 52" aria-hidden="true">
+        <circle class="bt-track" cx="26" cy="26" r="23" />
+        <circle class="bt-progress" id="btRing" cx="26" cy="26" r="23" />
+    </svg>
+    <span class="bt-inner">
+        <span class="bt-pct" id="btPct">0%</span>
+        <svg class="bt-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6l6 6h-4v6h-4v-6H6z" /></svg>
+    </span>
+</button>
+
+<script>
+    (function () {
+        var btn = document.getElementById('articleBackTop');
+        if (!btn) return;
+
+        var ring = document.getElementById('btRing');
+        var pct = document.getElementById('btPct');
+        var len = 2 * Math.PI * 23;
+        var ticking = false;
+
+        document.body.classList.add('has-article-rail');
+
+        ring.style.strokeDasharray = len;
+        ring.style.strokeDashoffset = len;
+
+        function update() {
+            ticking = false;
+            var doc = document.documentElement;
+            var max = doc.scrollHeight - window.innerHeight;
+            var progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+
+            ring.style.strokeDashoffset = (len * (1 - progress)).toFixed(1);
+            pct.textContent = Math.round(progress * 100) + '%';
+
+            if (window.scrollY > 320) btn.classList.add('show');
+            else btn.classList.remove('show');
+        }
+
+        function onScroll() {
+            if (ticking) return;
+            ticking = true;
+            window.requestAnimationFrame(update);
+        }
+
+        btn.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        update();
+    })();
+</script>

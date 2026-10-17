@@ -1,0 +1,126 @@
+@model ShareViewModel
+@{
+    ViewData["Title"] = "分享";
+    ViewData["FullWidth"] = true;
+    var share = Model.Share;
+}
+
+<div class="share-wrap">
+    <div class="share-card">
+        <div class="share-head">
+            <span class="brand-mark">
+                <svg class="ico" aria-hidden="true"><use href="#i-share" /></svg>
+            </span>
+            <div>
+                <span class="eyebrow">Shared</span>
+                <h1>@(Model.NeedPassword ? "受保护的分享" : (Model.File != null ? "文件分享" : "文件夹分享"))</h1>
+            </div>
+        </div>
+
+        @if (Model.NeedPassword)
+        {
+            <p class="text-muted small mb-3">
+                <svg class="ico ico-sm me-1" aria-hidden="true"><use href="#i-lock" /></svg>
+                该分享需要访问密码才能查看。
+            </p>
+            <form method="post" class="row g-2 align-items-center" style="max-width:460px;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="token" value="@share.Token" />
+                <div class="col-auto flex-grow-1">
+                    <input type="password" name="password" class="form-control" placeholder="请输入访问密码" autofocus />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">解锁</button>
+                </div>
+            </form>
+        }
+        else if (Model.File != null)
+        {
+            var m = Model.File;
+            var pwdQuery = string.IsNullOrEmpty(share.Password) ? "" : "&password=" + Uri.EscapeDataString(share.Password);
+            var accessUrl = $"/f/{m.FileKey}?share={share.Token}{pwdQuery}";
+            <div class="share-file-head">
+                <div class="min-w-0">
+                    <h2 class="share-filename text-break">@m.FileName</h2>
+                    <div class="post-meta">
+                        <span class="meta-item">
+                            <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+                            @m.SizeText
+                        </span>
+                        <span class="meta-item">
+                            <svg class="ico" aria-hidden="true"><use href="#i-calendar" /></svg>
+                            @(share.ExpireAt.HasValue ? "有效期至 " + share.ExpireAt.Value.ToString("yyyy-MM-dd HH:mm") : "永久有效")
+                        </span>
+                    </div>
+                </div>
+                <a class="btn btn-primary"
+                   href="/share/@share.Token/download@(string.IsNullOrEmpty(share.Password) ? "" : "?password=" + share.Password)">
+                    <svg class="ico me-1" aria-hidden="true"><use href="#i-download" /></svg>
+                    下载文件
+                </a>
+            </div>
+
+            <div class="share-preview">
+                @if (m.IsImage)
+                {
+                    <img src="@accessUrl" alt="@m.Alt" />
+                }
+                else
+                {
+                    <div class="share-empty">
+                        <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+                        <p>该文件暂无在线预览，请下载后查看。</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="share-file-head">
+                <div>
+                    <h2 class="share-filename">
+                        <svg class="ico me-1" aria-hidden="true"><use href="#i-folder" /></svg>
+                        @Model.FolderName
+                    </h2>
+                    <div class="post-meta">
+                        <span class="meta-item">共 @Model.Files.Count 个文件</span>
+                        <span class="meta-item">
+                            @(share.ExpireAt.HasValue ? "有效期至 " + share.ExpireAt.Value.ToString("yyyy-MM-dd HH:mm") : "永久有效")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.Files.Count == 0)
+            {
+                <div class="empty-state" style="margin-top:1.5rem;">
+                    <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+                    <p>该文件夹内暂无文件</p>
+                </div>
+            }
+            else
+            {
+                <ul class="share-list">
+                    @foreach (var f in Model.Files)
+                    {
+                        <li>
+                            <div class="share-list-info">
+                                <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+                                <span class="text-truncate">@f.FileName</span>
+                                <span class="size">@f.SizeText</span>
+                            </div>
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="/share/@share.Token/download/@f.Id@(string.IsNullOrEmpty(share.Password) ? "" : "?password=" + share.Password)">
+                                下载
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+
+        <div class="share-foot">
+            本页面由 @(ViewData["SiteName"] ?? "本站") 文件分享生成 · 已被访问 @share.VisitCount 次
+        </div>
+    </div>
+</div>

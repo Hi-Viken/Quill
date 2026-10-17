@@ -1,0 +1,126 @@
+@model NavMenu
+@{
+    var bindList = ViewBag.BindList as List<MenuBindOption> ?? new List<MenuBindOption>();
+    var currentType = ViewBag.CurrentLinkType as string ?? MenuLinkType.Url;
+    var currentId = ViewBag.CurrentLinkId as int?;
+    var isBound = currentType != MenuLinkType.Url;
+}
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="Title" class="form-label">菜单名称</label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="LinkType" class="form-label">链接来源</label>
+        <select asp-for="LinkType" id="linkType" class="form-select" asp-items="ViewBag.LinkTypeList"></select>
+        <div class="form-text">绑定分类 / 标签 / 文章 / 页面后，链接会随内容自动更新。</div>
+    </div>
+
+    <div class="col-md-6" id="bindWrap" hidden="@(isBound ? null : "hidden")">
+        <label asp-for="LinkId" class="form-label">绑定内容</label>
+        <select asp-for="LinkId" id="linkId" class="form-select">
+            <option value="">（请选择要绑定的内容）</option>
+            @foreach (var group in bindList.GroupBy(o => o.Group))
+            {
+                <optgroup label="@group.Key" data-group="@group.First().Type">
+                    @foreach (var opt in group)
+                    {
+                        <option value="@opt.Id" data-type="@opt.Type" data-url="@opt.Url"
+                                selected="@(currentId == opt.Id && currentType == opt.Type)">@opt.Text</option>
+                    }
+                </optgroup>
+            }
+        </select>
+        <div class="form-text" id="bindHint">选择后前台菜单会指向该内容的当前地址。</div>
+    </div>
+
+    <div class="col-md-6" id="urlWrap" hidden="@(isBound ? "hidden" : null)">
+        <label asp-for="Url" class="form-label">链接地址</label>
+        <input asp-for="Url" id="urlInput" class="form-control" placeholder="/archives 或 https://example.com" />
+        <span asp-validation-for="Url" class="text-danger small"></span>
+        <div class="form-text">自定义链接填这里；绑定内容时可留空，作为绑定失效时的备用地址。</div>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="ParentId" class="form-label">上级菜单</label>
+        <select asp-for="ParentId" class="form-select" asp-items="ViewBag.ParentList"></select>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="SortOrder" class="form-label">排序</label>
+        <input asp-for="SortOrder" class="form-control" type="number" />
+        <span asp-validation-for="SortOrder" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Target" class="form-label">打开方式</label>
+        <select asp-for="Target" class="form-select" asp-items="ViewBag.TargetList"></select>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Icon" class="form-label">图标（可选）</label>
+        <input asp-for="Icon" class="form-control" placeholder="图标名，如 i-home" />
+        <span asp-validation-for="Icon" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <div class="form-check mt-4">
+            <input asp-for="IsExternal" class="form-check-input" />
+            <label asp-for="IsExternal" class="form-check-label">外部链接</label>
+        </div>
+        <div class="form-check">
+            <input asp-for="IsVisible" class="form-check-input" />
+            <label asp-for="IsVisible" class="form-check-label">在前台显示</label>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var typeEl = document.getElementById('linkType');
+        var bindWrap = document.getElementById('bindWrap');
+        var urlWrap = document.getElementById('urlWrap');
+        var bindEl = document.getElementById('linkId');
+        var hint = document.getElementById('bindHint');
+        var urlInput = document.getElementById('urlInput');
+        if (!typeEl || !bindEl) return;
+
+        var allOptions = Array.prototype.slice.call(bindEl.querySelectorAll('option[data-type]'));
+
+        function applyFilter(keepValue) {
+            var type = typeEl.value;
+            var bound = type !== '@MenuLinkType.Url';
+
+            bindWrap.hidden = !bound;
+            urlWrap.hidden = bound;
+
+            allOptions.forEach(function (opt) {
+                var match = opt.dataset.type === type;
+                opt.hidden = !match;
+                opt.disabled = !match;
+            });
+            bindEl.querySelectorAll('optgroup').forEach(function (g) {
+                g.hidden = g.querySelectorAll('option:not([hidden])').length === 0;
+            });
+
+            if (!bound) {
+                bindEl.value = '';
+                if (hint) hint.textContent = '选择后前台菜单会指向该内容的当前地址。';
+                return;
+            }
+            if (!keepValue) bindEl.value = '';
+            var picked = bindEl.selectedOptions[0];
+            if (hint) {
+                hint.textContent = picked && picked.value
+                    ? '绑定后菜单将指向：' + picked.dataset.url
+                    : '请选择一个' + typeEl.selectedOptions[0].text + '。';
+                if (picked && picked.value && urlInput && !urlInput.value) {
+                    urlInput.value = picked.dataset.url;
+                }
+            }
+        }
+
+        typeEl.addEventListener('change', function () { applyFilter(false); });
+        bindEl.addEventListener('change', function () { applyFilter(true); });
+        applyFilter(true);
+    })();
+</script>

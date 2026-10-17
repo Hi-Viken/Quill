@@ -1,0 +1,215 @@
+@inject CommentService CommentSvc
+@{
+    var isAdmin = User.IsInRole(Roles.Admin);
+    var isEditor = User.IsInRole(Roles.Editor);
+    var canManage = isAdmin || isEditor;
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var pending = CommentSvc.GetPendingCount();
+    var currentTitle = ViewData["Title"]?.ToString() ?? "后台";
+    var displayName = User.FindFirst("DisplayName")?.Value ?? User.Identity?.Name ?? "用户";
+    var avatarChar = string.IsNullOrWhiteSpace(displayName) ? "U" : displayName.Trim().Substring(0, 1);
+}
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - 后台管理</title>
+    <script>
+        // 默认深色主题；用户手动切到浅色时记住偏好
+        (function () {
+            try {
+                var t = localStorage.getItem('nb-theme') || 'dark';
+                if (t === 'light') document.documentElement.removeAttribute('data-theme');
+            } catch (e) { }
+        })();
+    </script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Quill.styles.css" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="admin-body">
+    <partial name="~/Views/Shared/_Icons.cshtml" />
+
+    <aside class="admin-sidebar">
+        <a class="admin-brand" asp-controller="Dashboard" asp-action="Index">
+            <span class="brand-mark">管</span>
+            <span>博客后台</span>
+        </a>
+
+        <div>
+            <div class="admin-nav-label">内容</div>
+            <ul class="admin-nav">
+                <li>
+                    <a class="nav-link @(currentController == "Dashboard" ? "active" : "")"
+                       asp-controller="Dashboard" asp-action="Index">
+                        <svg class="ico" aria-hidden="true"><use href="#i-grid" /></svg> 仪表盘
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @(currentController == "Articles" ? "active" : "")"
+                       asp-controller="Articles" asp-action="Index">
+                        <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg> 文章
+                    </a>
+                </li>
+                @if (canManage)
+                {
+                    <li>
+                        <a class="nav-link @(currentController == "Pages" ? "active" : "")"
+                           asp-controller="Pages" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-layers" /></svg> 独立页面
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @(currentController == "Categories" ? "active" : "")"
+                           asp-controller="Categories" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg> 分类
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @(currentController == "Tags" ? "active" : "")"
+                           asp-controller="Tags" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-tag" /></svg> 标签
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @(currentController == "Comments" ? "active" : "")"
+                           asp-controller="Comments" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+                            <span>评论</span>
+                            @if (pending > 0)
+                            {
+                                <span class="badge rounded-pill">@pending</span>
+                            }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div>
+            <div class="admin-nav-label">媒体</div>
+            <ul class="admin-nav">
+                <li>
+                    <a class="nav-link @(currentController == "Files" ? "active" : "")"
+                       asp-controller="Files" asp-action="Index">
+                        <svg class="ico" aria-hidden="true"><use href="#i-image" /></svg> 文件管理
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        @if (isAdmin)
+        {
+            <div>
+                <div class="admin-nav-label">系统</div>
+                <ul class="admin-nav">
+                    <li>
+                        <a class="nav-link @(currentController == "Users" ? "active" : "")"
+                           asp-controller="Users" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-users" /></svg> 用户
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @(currentController == "NavMenus" ? "active" : "")"
+                           asp-controller="NavMenus" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-menu" /></svg> 导航菜单
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @(currentController == "FriendLinks" ? "active" : "")"
+                           asp-controller="FriendLinks" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-link" /></svg> 友情链接
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @(currentController == "Settings" ? "active" : "")"
+                           asp-controller="Settings" asp-action="Index">
+                            <svg class="ico" aria-hidden="true"><use href="#i-sliders" /></svg> 站点设置
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        }
+
+        <div class="admin-sidebar-foot">
+            <a class="nav-link" href="/">
+                <svg class="ico" aria-hidden="true"><use href="#i-home" /></svg> 返回前台
+            </a>
+        </div>
+    </aside>
+
+    <div class="admin-content">
+        <header class="admin-topbar">
+            <div>
+                <h1>@currentTitle</h1>
+                <div class="crumb">后台管理 / @currentTitle</div>
+            </div>
+            <div class="tools">
+                <a class="btn btn-sm btn-light d-none d-md-inline-flex" href="/" target="_blank" rel="noopener">
+                    <svg class="ico me-1" aria-hidden="true"><use href="#i-home" /></svg> 前台
+                </a>
+                <button class="icon-btn theme-toggle" type="button" id="adminThemeToggle"
+                        aria-label="切换深色模式" title="切换深色模式">
+                    <svg class="ico ico-to-dark" aria-hidden="true"><use href="#i-moon" /></svg>
+                    <svg class="ico ico-to-light" aria-hidden="true"><use href="#i-sun" /></svg>
+                </button>
+                <span class="admin-user">
+                    <span class="avatar">@avatarChar</span>
+                    <span>@displayName</span>
+                </span>
+                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                    <button type="submit" class="icon-btn" title="退出登录" aria-label="退出登录">
+                        <svg class="ico" aria-hidden="true"><use href="#i-logout" /></svg>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <svg class="ico me-1" aria-hidden="true"><use href="#i-check" /></svg>
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                </div>
+            }
+            @if (TempData["Warning"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <svg class="ico me-1" aria-hidden="true"><use href="#i-warning" /></svg>
+                    @TempData["Warning"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var btn = document.getElementById('adminThemeToggle');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var root = document.documentElement;
+                var isDark = root.getAttribute('data-theme') === 'dark';
+                if (isDark) root.removeAttribute('data-theme');
+                else root.setAttribute('data-theme', 'dark');
+                try { localStorage.setItem('nb-theme', isDark ? 'light' : 'dark'); } catch (e) { }
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

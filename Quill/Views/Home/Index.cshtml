@@ -1,0 +1,86 @@
+﻿@inject Quill.Services.SettingsService SettingsSvc
+@inject Quill.Services.TaxonomyService TaxonomySvc
+@using Quill.Models
+@model PagedResult<Article>
+
+@{
+    var site = SettingsSvc.Get();
+    var categoryCount = TaxonomySvc.GetCategoriesWithCount().Count;
+    var tagCount = TaxonomySvc.GetTagCloud(999).Count;
+
+    // 首屏：默认站点介绍，或在后台切换为轮播图（没有可用图片时自动回落）
+    var banners = HomeBanner.Parse(site.HomeBannersJson);
+    var useCarousel = site.HomeHeroMode == HomeHeroModes.Carousel
+                      && banners.Any(b => b.HasImage || !string.IsNullOrWhiteSpace(b.Title));
+}
+
+@if (useCarousel)
+{
+    <partial name="_HeroCarousel" model="banners" />
+}
+else
+{
+<section class="hero">
+    <div class="hero-inner">
+        <div>
+            <span class="hero-eyebrow">
+                <span class="dot"></span>
+                博客 · 记录与思考
+            </span>
+            <h1 class="hero-title">@site.SiteName</h1>
+            @if (!string.IsNullOrEmpty(site.SiteDescription))
+            {
+                <p class="hero-desc">@site.SiteDescription</p>
+            }
+            <div class="hero-actions">
+                <a class="btn-ink" href="#posts">
+                    开始阅读
+                    <svg class="ico" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                </a>
+                <a class="btn-ghost" asp-controller="Archive" asp-action="Index">
+                    <svg class="ico" aria-hidden="true"><use href="#i-archive" /></svg>
+                    浏览归档
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-num">@Model.TotalCount</span>
+                    <span class="stat-label">篇文章</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-num">@categoryCount</span>
+                    <span class="stat-label">个分类</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-num">@tagCount</span>
+                    <span class="stat-label">个标签</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+            <div class="sheet sheet-1"></div>
+            <div class="sheet sheet-3"></div>
+            <div class="sheet sheet-2">
+                <div class="line accent"></div>
+                <div class="line w-70" style="margin-top:.35rem"></div>
+                <div class="line"></div>
+                <div class="line w-45"></div>
+                <div class="line"></div>
+                <div class="line w-70"></div>
+            </div>
+            <span class="glyph">”</span>
+        </div>
+    </div>
+</section>
+}
+
+<div id="posts" class="section-head">
+    <h2>最新文章</h2>
+    <a class="link-more" asp-controller="Article" asp-action="Index">
+        全部文章
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-right" /></svg>
+    </a>
+</div>
+
+<partial name="_ArticleList" model="Model" />

@@ -1,0 +1,169 @@
+@model PagedResult<Comment>
+@{
+    ViewData["Title"] = "评论管理";
+}
+
+<h4 class="mb-3">评论管理</h4>
+
+<form asp-action="Index" method="get" class="row g-2 align-items-center mb-3">
+    <div class="col-auto">
+        <select name="approved" class="form-select" asp-items="ViewBag.ApprovedList"></select>
+    </div>
+    <div class="col-auto">
+        <input type="search" name="keyword" value="@ViewBag.Keyword" class="form-control" placeholder="评论内容 / 作者" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">筛选</button>
+        <a class="btn btn-link" asp-action="Index">重置</a>
+    </div>
+</form>
+
+<div class="card mb-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:36px;">
+                        <input class="form-check-input" type="checkbox" id="checkAll" />
+                    </th>
+                    <th>作者</th>
+                    <th>内容</th>
+                    <th>所属</th>
+                    <th class="text-center">状态</th>
+                    <th>时间</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">暂无评论</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var c in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <input class="form-check-input row-check" type="checkbox" name="ids" value="@c.Id" form="bulkForm" />
+                            </td>
+                            <td class="small">
+                                <div class="fw-semibold">@c.AuthorName</div>
+                                <div class="text-muted">@c.Email</div>
+                                <div class="text-muted">@c.IpAddress</div>
+                            </td>
+                            <td>
+                                <div class="small">@c.Content</div>
+                            </td>
+                            <td class="small">
+                                @if (c.Article != null)
+                                {
+                                    <span>《@c.Article.Title》</span>
+                                }
+                                else if (c.PageId.HasValue)
+                                {
+                                    <span class="text-muted">独立页面</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                @if (c.ParentId.HasValue)
+                                {
+                                    <div class="text-muted">回复 # @c.ParentId</div>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (c.IsApproved)
+                                {
+                                    <span class="badge bg-success">已通过</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">待审核</span>
+                                }
+                            </td>
+                            <td class="small">@c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end text-nowrap">
+                                @if (!c.IsApproved)
+                                {
+                                    <form asp-action="Approve" asp-route-id="@c.Id" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">通过</button>
+                                    </form>
+                                }
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reply_@c.Id">回复</button>
+                                <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('确定删除这条评论？（其子回复会一并删除）');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<form id="bulkForm" asp-action="BulkApprove" method="post">
+    <button type="submit" class="btn btn-success btn-sm">批量通过选中</button>
+    <span class="text-muted small ms-2">勾选左侧复选框后生效</span>
+</form>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item @(Model.HasPrev ? "" : "disabled")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-approved="@ViewBag.Approved"
+                   asp-route-keyword="@ViewBag.Keyword">上一页</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">第 @Model.Page / @Model.TotalPages 页（共 @Model.TotalCount 条）</span>
+            </li>
+            <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-approved="@ViewBag.Approved"
+                   asp-route-keyword="@ViewBag.Keyword">下一页</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+@foreach (var c in Model.Items)
+{
+    <div class="modal fade" id="reply_@c.Id" tabindex="-1">
+        <div class="modal-dialog">
+            <form asp-action="Reply" asp-route-id="@c.Id" method="post" class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">回复 @c.AuthorName</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <blockquote class="small text-muted border-start ps-2 mb-2">@c.Content</blockquote>
+                    <textarea name="content" class="form-control" rows="4" placeholder="请输入回复内容"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary btn-sm">发布回复</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const checkAll = document.getElementById('checkAll');
+        if (checkAll) {
+            checkAll.addEventListener('change', function () {
+                document.querySelectorAll('.row-check').forEach(function (box) { box.checked = checkAll.checked; });
+            });
+        }
+    </script>
+}

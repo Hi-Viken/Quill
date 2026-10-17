@@ -1,0 +1,35 @@
+# Normalize line endings for a cross-platform repository
+* text=auto
+
+# Source code and docs: LF in the repository, native in the working tree
+*.cs      text diff=csharp
+*.cshtml  text
+*.csproj  text
+*.slnx    text
+*.json    text
+*.md      text
+*.css     text
+*.js      text
+*.yml     text
+*.yaml    text
+*.xml     text
+.gitignore text
+.gitattributes text
+
+# Windows-only tooling
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary assets
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.svg   text
+*.db    binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary

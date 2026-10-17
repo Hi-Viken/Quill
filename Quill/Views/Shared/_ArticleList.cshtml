@@ -1,0 +1,36 @@
+@inject Quill.Services.SettingsService SettingsSvc
+@using Quill.Models
+@model Quill.Utils.PagedResult<Article>
+
+@{
+    // 列表样式由后台「站点设置 → 文章列表呈现」控制：list 横向列表 / grid 封面+标题
+    var useGrid = string.Equals(SettingsSvc.Get().ArticleListStyle, ArticleListStyles.Grid,
+        StringComparison.OrdinalIgnoreCase);
+}
+
+@if (Model == null || !Model.Items.Any())
+{
+    <div class="empty-state">
+        <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+        <p>这里还没有文章</p>
+        <span class="small text-muted">新的内容正在路上</span>
+    </div>
+}
+else
+{
+    <div class="@(useGrid ? "post-grid" : "post-list")">
+        @foreach (var a in Model.Items)
+        {
+            if (useGrid)
+            {
+                <partial name="_ArticleTile" model="a" />
+            }
+            else
+            {
+                <partial name="_ArticleCard" model="a" />
+            }
+        }
+    </div>
+
+    <partial name="_Pagination" model="Model" />
+}

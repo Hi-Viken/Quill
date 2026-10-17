@@ -1,0 +1,42 @@
+@using Quill.Models
+@model List<Comment>
+@{
+    var articleId = ViewBag.ArticleId as int?;
+    var pageId = ViewBag.PageId as int?;
+}
+
+@* 递归渲染评论树：支持任意层级的回复 *@
+@foreach (var c in Model)
+{
+    var initial = string.IsNullOrWhiteSpace(c.AuthorName) ? "?" : c.AuthorName.Trim().Substring(0, 1);
+    <div class="comment" id="comment-@c.Id">
+        <div class="comment-head">
+            <span class="avatar" aria-hidden="true">@initial</span>
+            <strong class="comment-author">@c.AuthorName</strong>
+            @if (c.UserId.HasValue)
+            {
+                <span class="badge text-bg-info">会员</span>
+            }
+            <span class="comment-time">@c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+            <button type="button" class="reply-toggle" data-target="reply-@c.Id">回复</button>
+        </div>
+
+        <div class="comment-body text-break">
+            @Html.Raw(System.Net.WebUtility.HtmlEncode(c.Content)
+                .Replace("\r\n", "<br/>")
+                .Replace("\n", "<br/>"))
+        </div>
+
+        <div id="reply-@c.Id" class="mt-2" style="display:none;">
+            <partial name="_CommentForm"
+                     model="new CommentInputModel { ArticleId = articleId, PageId = pageId, ParentId = c.Id }" />
+        </div>
+
+        @if (c.Replies != null && c.Replies.Any())
+        {
+            <div class="comment-replies">
+                <partial name="_CommentTree" model="c.Replies" />
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,32 @@
+@model Tag
+@{
+    ViewData["Title"] = "新建标签";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">新建标签</h4>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">返回列表</a>
+</div>
+
+<form asp-action="Create" method="post" class="card">
+    <div class="card-body">
+        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label">名称</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Slug" class="form-label">Slug（别名）</label>
+                <input asp-for="Slug" class="form-control" placeholder="留空则自动生成" />
+                <span asp-validation-for="Slug" class="text-danger small"></span>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button type="submit" class="btn btn-primary">保存标签</button>
+        <a class="btn btn-link" asp-action="Index">取消</a>
+    </div>
+</form>

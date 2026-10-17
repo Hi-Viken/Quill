@@ -1,0 +1,51 @@
+@using Quill.Models
+@model List<ArchiveGroup>
+
+@{
+    var years = Model.GroupBy(g => g.Year).OrderByDescending(g => g.Key).ToList();
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Archive</span>
+        <h1>文章归档</h1>
+        <p class="lead-note">按时间串起写下的每一篇</p>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-archive" /></svg>
+        @years.Count 个年份
+    </span>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="ico" aria-hidden="true"><use href="#i-archive" /></svg>
+        <p>暂无归档记录</p>
+    </div>
+}
+else
+{
+    <div class="archive">
+        @foreach (var yearGroup in years)
+        {
+            <section class="archive-group">
+                <div class="archive-year">
+                    <span class="y">@yearGroup.Key</span>
+                    <span class="n">@yearGroup.Sum(x => x.Count) 篇</span>
+                </div>
+                <div class="month-grid">
+                    @foreach (var g in yearGroup.OrderBy(g => g.Month == 0 ? 0 : g.Month))
+                    {
+                        <a class="month-card"
+                           asp-controller="Archive" asp-action="Details"
+                           asp-route-year="@g.Year" asp-route-month="@g.Month">
+                            <span>@g.Label</span>
+                            <span class="n">@g.Count</span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+    </div>
+}

@@ -1,0 +1,23 @@
+@using Quill.Models
+@model PagedResult<Article>
+
+@{
+    var cat = (Category)ViewBag.Category;
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Category</span>
+        <h1>@cat.Name</h1>
+        @if (!string.IsNullOrEmpty(cat.Description))
+        {
+            <p class="lead-note">@cat.Description</p>
+        }
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-file" /></svg>
+        共 @Model.TotalCount 篇
+    </span>
+</div>
+
+<partial name="_ArticleList" model="Model" />

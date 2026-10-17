@@ -1,0 +1,19 @@
+@using Quill.Models
+@model PagedResult<Article>
+
+@{
+    var tag = (Tag)ViewBag.Tag;
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Tag</span>
+        <h1>#@tag.Name</h1>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-file" /></svg>
+        共 @Model.TotalCount 篇
+    </span>
+</div>
+
+<partial name="_ArticleList" model="Model" />

@@ -1,0 +1,33 @@
+@using Quill.Models
+@model PagedResult<Article>
+
+@{
+    var keyword = ViewData["Keyword"]?.ToString();
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Search</span>
+        <h1>搜索：@keyword</h1>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(keyword))
+    {
+        <span class="count-chip">
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-search" /></svg>
+            @Model.TotalCount 个结果
+        </span>
+    }
+</div>
+
+@if (string.IsNullOrWhiteSpace(keyword))
+{
+    <div class="empty-state">
+        <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+        <p>请输入搜索关键词</p>
+        <span class="small text-muted">试试在右上角的搜索框里输入文章标题或内容</span>
+    </div>
+}
+else
+{
+    <partial name="_ArticleList" model="Model" />
+}

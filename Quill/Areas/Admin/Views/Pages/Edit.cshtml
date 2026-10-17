@@ -1,0 +1,60 @@
+@model Page
+@{
+    ViewData["Title"] = "编辑页面";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">编辑页面</h4>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">返回列表</a>
+</div>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label">标题</label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Slug" class="form-label">Slug（访问别名）</label>
+                <input asp-for="Slug" class="form-control" placeholder="留空则自动生成" />
+                <div class="form-text">页面链接为 /page/别名。</div>
+                <span asp-validation-for="Slug" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ContentMarkdown" class="form-label">正文（Markdown）</label>
+                <textarea asp-for="ContentMarkdown" class="form-control font-monospace" rows="18"></textarea>
+                <span asp-validation-for="ContentMarkdown" class="text-danger small"></span>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">发布设置</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="SortOrder" class="form-label">排序（数字越小越靠前）</label>
+                        <input asp-for="SortOrder" class="form-control" type="number" />
+                        <span asp-validation-for="SortOrder" class="text-danger small"></span>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="IsPublished" class="form-check-input" />
+                        <label asp-for="IsPublished" class="form-check-label">发布该页面</label>
+                    </div>
+                    <div class="form-check">
+                        <input asp-for="AllowComment" class="form-check-input" />
+                        <label asp-for="AllowComment" class="form-check-label">允许评论</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">保存修改</button>
+        <a class="btn btn-link" asp-action="Index">取消</a>
+    </div>
+</form>

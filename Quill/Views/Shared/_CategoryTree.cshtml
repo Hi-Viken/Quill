@@ -1,0 +1,30 @@
+@using Quill.Models
+@model List<Category>
+
+@* 递归渲染分类树（支持多级） *@
+<ul class="cat-list cat-tree">
+    @foreach (var c in Model)
+    {
+        <li>
+            <a asp-controller="Category" asp-action="Details" asp-route-slug="@c.Slug">
+                <span class="d-inline-flex align-items-center gap-2">
+                    <svg class="ico ico-sm text-muted" aria-hidden="true"><use href="#i-folder" /></svg>
+                    <span>
+                        @c.Name
+                        @if (!string.IsNullOrEmpty(c.Description))
+                        {
+                            <span class="d-block text-muted" style="font-size:.76rem;">@c.Description</span>
+                        }
+                    </span>
+                </span>
+                <span class="count">@c.ArticleCount</span>
+            </a>
+            @if (c.Children != null && c.Children.Any())
+            {
+                <div class="cat-tree-sub">
+                    <partial name="_CategoryTree" model="c.Children" />
+                </div>
+            }
+        </li>
+    }
+</ul>

@@ -1,0 +1,58 @@
+@using Quill.Models
+@model Article
+
+@{
+    var hasCover = !string.IsNullOrEmpty(Model.CoverImage);
+    var url = Url.Action("Details", "Article", new { id = Model.Slug ?? Model.Id.ToString() });
+    var date = Model.PublishedAt ?? Model.CreatedAt;
+}
+
+@* 网格模式卡片：封面 + 标题，一行排多个（列数由 CSS grid 自适应） *@
+<article class="post-tile @(hasCover ? "has-cover" : "")">
+    <a class="post-tile-cover" href="@url" tabindex="-1" aria-hidden="true">
+        @if (hasCover)
+        {
+            <img src="@Model.CoverImage" alt="@Model.Title" loading="lazy" />
+        }
+        else
+        {
+            <svg class="ico" aria-hidden="true"><use href="#i-file" /></svg>
+        }
+    </a>
+
+    <div class="post-tile-body">
+        <div class="post-tile-top">
+            @if (Model.IsPinned)
+            {
+                <span class="pin-chip">
+                    <svg class="ico" aria-hidden="true"><use href="#i-bookmark" /></svg> 置顶
+                </span>
+            }
+            @if (Model.Status == ArticleStatus.Draft)
+            {
+                <span class="badge text-bg-warning">草稿</span>
+            }
+        </div>
+
+        <h2 class="post-tile-title">
+            <a href="@url">@Model.Title</a>
+        </h2>
+
+        <div class="post-tile-meta">
+            @if (Model.Category != null)
+            {
+                <a class="tile-cat" asp-controller="Category" asp-action="Details" asp-route-slug="@Model.Category.Slug">
+                    @Model.Category.Name
+                </a>
+            }
+            <span class="tile-date">
+                <svg class="ico" aria-hidden="true"><use href="#i-calendar" /></svg>
+                @date.ToString("yyyy-MM-dd")
+            </span>
+            <span class="tile-views">
+                <svg class="ico" aria-hidden="true"><use href="#i-eye" /></svg>
+                @Model.ViewCount
+            </span>
+        </div>
+    </div>
+</article>

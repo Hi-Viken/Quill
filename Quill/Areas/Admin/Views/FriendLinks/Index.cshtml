@@ -1,0 +1,63 @@
+@model List<FriendLink>
+@{
+    ViewData["Title"] = "友情链接";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">友情链接</h4>
+    <a class="btn btn-primary btn-sm" asp-action="Create">新建链接</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>名称</th>
+                    <th>链接地址</th>
+                    <th>描述</th>
+                    <th class="text-center">排序</th>
+                    <th class="text-center">显示</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">暂无友情链接</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var f in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@f.Name</td>
+                            <td class="small text-muted">@f.Url</td>
+                            <td class="small">@f.Description</td>
+                            <td class="text-center small">@f.SortOrder</td>
+                            <td class="text-center">
+                                @if (f.IsVisible)
+                                {
+                                    <span class="badge bg-success">显示</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">隐藏</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@f.Id">编辑</a>
+                                <form asp-action="Delete" asp-route-id="@f.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('确定删除友情链接「@f.Name」？');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

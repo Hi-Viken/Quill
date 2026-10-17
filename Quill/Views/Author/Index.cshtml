@@ -1,0 +1,62 @@
+@using Quill.Models
+@model List<ApplicationUser>
+
+@{
+    var counts = ViewBag.ArticleCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Authors</span>
+        <h1>作者</h1>
+        <p class="lead-note">在这里写作的人</p>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-users" /></svg>
+        @Model.Count 位作者
+    </span>
+</div>
+
+<div class="row g-3">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="empty-state">
+                <svg class="ico" aria-hidden="true"><use href="#i-users" /></svg>
+                <p>暂无作者</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        foreach (var u in Model)
+        {
+            <div class="col-md-6">
+                <article class="author-card">
+                    @if (!string.IsNullOrEmpty(u.Avatar))
+                    {
+                        <img src="@u.Avatar" alt="@u.DisplayNameOrName" class="avatar-lg" />
+                    }
+                    else
+                    {
+                        <span class="avatar-lg" aria-hidden="true">@u.DisplayNameOrName.Substring(0, 1)</span>
+                    }
+                    <div class="min-w-0">
+                        <h2 class="name">
+                            <a asp-controller="Author" asp-action="Details" asp-route-id="@u.Id">@u.DisplayNameOrName</a>
+                        </h2>
+                        <div class="handle">@($"@{u.UserName}")</div>
+                        @if (!string.IsNullOrEmpty(u.Bio))
+                        {
+                            <p class="bio">@u.Bio</p>
+                        }
+                        <span class="count">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-file" /></svg>
+                            @counts.GetValueOrDefault(u.Id) 篇文章
+                        </span>
+                    </div>
+                </article>
+            </div>
+        }
+    }
+</div>

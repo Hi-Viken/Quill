@@ -1,0 +1,15 @@
+@using Quill.Models
+@model PagedResult<Article>
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Articles</span>
+        <h1>全部文章</h1>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-file" /></svg>
+        共 @Model.TotalCount 篇
+    </span>
+</div>
+
+<partial name="_ArticleList" model="Model" />

@@ -1,0 +1,95 @@
+@using Quill.Models
+@model Article
+
+@{
+    var hasCover = !string.IsNullOrEmpty(Model.CoverImage);
+    var articleUrl = Url.Action("Details", "Article", new { id = Model.Slug ?? Model.Id.ToString() });
+    var date = Model.PublishedAt ?? Model.CreatedAt;
+}
+
+<article class="post-card @(hasCover ? "has-cover" : "")">
+    <div class="post-card-body">
+        <div class="post-card-top">
+            @if (Model.IsPinned)
+            {
+                <span class="pin-chip">
+                    <svg class="ico" aria-hidden="true"><use href="#i-bookmark" /></svg> 置顶
+                </span>
+            }
+            @if (Model.Status == ArticleStatus.Draft)
+            {
+                <span class="badge text-bg-warning">草稿</span>
+            }
+            @if (Model.Category != null)
+            {
+                <a class="badge text-bg-primary text-decoration-none"
+                   asp-controller="Category" asp-action="Details" asp-route-slug="@Model.Category.Slug">
+                    @Model.Category.Name
+                </a>
+            }
+        </div>
+
+        <h2 class="post-title">
+            <a asp-controller="Article" asp-action="Details" asp-route-id="@(Model.Slug ?? Model.Id.ToString())">
+                @Model.Title
+            </a>
+        </h2>
+
+        @if (!string.IsNullOrEmpty(Model.Summary))
+        {
+            <p class="post-excerpt">@Model.Summary</p>
+        }
+
+        @if (Model.Tags != null && Model.Tags.Any())
+        {
+            <div class="post-tags">
+                @foreach (var t in Model.Tags)
+                {
+                    <a asp-controller="Tag" asp-action="Details" asp-route-slug="@t.Slug" class="tag-chip">
+                        #@t.Name
+                    </a>
+                }
+            </div>
+        }
+
+        <div class="post-card-foot">
+            <div class="post-meta">
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-calendar" /></svg>
+                    @date.ToString("yyyy-MM-dd")
+                </span>
+                @if (Model.Author != null)
+                {
+                    <a class="meta-item text-decoration-none" asp-controller="Author" asp-action="Details"
+                       asp-route-id="@Model.Author.Id">
+                        <svg class="ico" aria-hidden="true"><use href="#i-user" /></svg>
+                        @Model.Author.DisplayNameOrName
+                    </a>
+                }
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-eye" /></svg>
+                    @Model.ViewCount
+                </span>
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-comment" /></svg>
+                    @Model.CommentCount
+                </span>
+                <span class="meta-item">
+                    <svg class="ico" aria-hidden="true"><use href="#i-heart" /></svg>
+                    @Model.LikeCount
+                </span>
+            </div>
+            <a class="read-more" href="@articleUrl">
+                阅读全文
+                <svg class="ico" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+            </a>
+        </div>
+    </div>
+
+    @if (hasCover)
+    {
+        <a class="post-thumb" href="@articleUrl" tabindex="-1" aria-hidden="true">
+            <img src="@Model.CoverImage" alt="@Model.Title" loading="lazy" />
+        </a>
+    }
+</article>

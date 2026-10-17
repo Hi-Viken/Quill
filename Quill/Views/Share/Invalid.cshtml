@@ -1,0 +1,16 @@
+@model string
+@{
+    ViewData["Title"] = "分享不可用";
+    ViewData["FullWidth"] = true;
+}
+
+<div class="error-page">
+    <div class="error-code">
+        <svg class="ico" style="font-size:2.4rem;" aria-hidden="true"><use href="#i-link" /></svg>
+    </div>
+    <h1>分享不可用</h1>
+    <p>@Model</p>
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a href="/" class="btn btn-primary">返回首页</a>
+    </div>
+</div>

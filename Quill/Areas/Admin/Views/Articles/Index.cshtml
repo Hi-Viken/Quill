@@ -1,0 +1,127 @@
+@model PagedResult<Article>
+@{
+    ViewData["Title"] = "文章管理";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">文章管理</h4>
+    <a class="btn btn-primary btn-sm" asp-action="Create">写文章</a>
+</div>
+
+<form asp-action="Index" method="get" class="row g-2 align-items-center mb-3">
+    <div class="col-auto">
+        <input type="search" name="keyword" value="@ViewBag.Keyword" class="form-control" placeholder="标题关键字" />
+    </div>
+    <div class="col-auto">
+        <select name="status" class="form-select" asp-items="ViewBag.StatusList"></select>
+    </div>
+    <div class="col-auto">
+        <select name="categoryId" class="form-select" asp-items="ViewBag.CategoryList"></select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">筛选</button>
+        <a class="btn btn-link" asp-action="Index">重置</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>标题</th>
+                    <th>作者</th>
+                    <th>分类</th>
+                    <th class="text-center">状态</th>
+                    <th class="text-center">置顶</th>
+                    <th class="text-end">查看</th>
+                    <th class="text-end">评论</th>
+                    <th>更新时间</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">暂无文章</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var a in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a class="fw-semibold text-decoration-none" asp-action="Edit" asp-route-id="@a.Id">@a.Title</a>
+                                <div class="small text-muted">/post/@a.Slug</div>
+                            </td>
+                            <td class="small">@(a.Author?.DisplayNameOrName ?? "—")</td>
+                            <td class="small">@(a.Category?.Name ?? "未分类")</td>
+                            <td class="text-center">
+                                @if (a.Status == ArticleStatus.Published)
+                                {
+                                    <span class="badge bg-success">已发布</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">草稿</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (a.IsPinned)
+                                {
+                                    <span class="badge bg-warning text-dark">置顶</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-end small">@a.ViewCount</td>
+                            <td class="text-end small">@a.CommentCount</td>
+                            <td class="small">@a.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@a.Id">编辑</a>
+                                <form asp-action="TogglePin" asp-route-id="@a.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">
+                                        @(a.IsPinned ? "取消置顶" : "置顶")
+                                    </button>
+                                </form>
+                                <form asp-action="Delete" asp-route-id="@a.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('确定删除《@a.Title》？该操作不可恢复。');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item @(Model.HasPrev ? "" : "disabled")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-status="@ViewBag.Status"
+                   asp-route-categoryId="@ViewBag.CategoryId"
+                   asp-route-keyword="@ViewBag.Keyword">上一页</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">第 @Model.Page / @Model.TotalPages 页（共 @Model.TotalCount 篇）</span>
+            </li>
+            <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-status="@ViewBag.Status"
+                   asp-route-categoryId="@ViewBag.CategoryId"
+                   asp-route-keyword="@ViewBag.Keyword">下一页</a>
+            </li>
+        </ul>
+    </nav>
+}

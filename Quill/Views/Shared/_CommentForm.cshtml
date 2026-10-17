@@ -1,0 +1,27 @@
+@using Quill.Models.ViewModels
+@model CommentInputModel
+
+<form asp-controller="Comment" asp-action="Add" method="post" class="comment-form">
+    <input type="hidden" asp-for="ArticleId" />
+    <input type="hidden" asp-for="PageId" />
+    <input type="hidden" asp-for="ParentId" />
+
+    <div class="row g-2 mb-2">
+        <div class="col-md-4">
+            <input asp-for="AuthorName" class="form-control form-control-sm" placeholder="昵称 *" aria-label="昵称" />
+        </div>
+        <div class="col-md-4">
+            <input asp-for="Email" class="form-control form-control-sm" placeholder="邮箱（选填，不公开）" aria-label="邮箱" />
+        </div>
+        <div class="col-md-4">
+            <input asp-for="Website" class="form-control form-control-sm" placeholder="个人网站（选填）" aria-label="个人网站" />
+        </div>
+    </div>
+    <div class="mb-2">
+        <textarea asp-for="Content" class="form-control" rows="3" placeholder="写下你的评论…" aria-label="评论内容"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">
+        <svg class="ico me-1" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+        发表评论
+    </button>
+</form>

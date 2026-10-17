@@ -1,0 +1,54 @@
+@model FriendLink
+@{
+    ViewData["Title"] = "编辑友情链接";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">编辑友情链接</h4>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">返回列表</a>
+</div>
+
+<form asp-action="Edit" method="post" class="card">
+    <input type="hidden" asp-for="Id" />
+    <div class="card-body">
+        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label">名称</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Url" class="form-label">链接地址</label>
+                <input asp-for="Url" class="form-control" placeholder="https://example.com" />
+                <span asp-validation-for="Url" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Logo" class="form-label">Logo 地址（可选）</label>
+                <input asp-for="Logo" class="form-control" />
+                <span asp-validation-for="Logo" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="SortOrder" class="form-label">排序（数字越小越靠前）</label>
+                <input asp-for="SortOrder" class="form-control" type="number" />
+                <span asp-validation-for="SortOrder" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Description" class="form-label">描述（可选）</label>
+                <input asp-for="Description" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="IsVisible" class="form-check-input" />
+                    <label asp-for="IsVisible" class="form-check-label">在前台显示</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button type="submit" class="btn btn-primary">保存修改</button>
+        <a class="btn btn-link" asp-action="Index">取消</a>
+    </div>
+</form>

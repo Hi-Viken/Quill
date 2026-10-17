@@ -1,0 +1,21 @@
+@using Quill.Models
+@model PagedResult<Article>
+
+@{
+    var year = (int)ViewBag.Year;
+    var month = (int)ViewBag.Month;
+    var title = month > 0 ? $"{year}年{month:D2}月" : $"{year}年";
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Archive</span>
+        <h1>@title</h1>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-file" /></svg>
+        共 @Model.TotalCount 篇
+    </span>
+</div>
+
+<partial name="_ArticleList" model="Model" />

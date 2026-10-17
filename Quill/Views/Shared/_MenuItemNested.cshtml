@@ -1,0 +1,34 @@
+@using Quill.Models
+@model NavMenu
+
+@* 二级及更深层菜单：递归渲染，有子节点时使用 dropend 继续展开（支持无限层级） *@
+@{
+    var path = (Context.Request.Path.Value ?? "/").TrimEnd('/');
+    var selfPath = (Model.EffectiveUrl ?? string.Empty).Split('?')[0].TrimEnd('/');
+    var isActive = selfPath.Length > 0 && string.Equals(selfPath, path, StringComparison.OrdinalIgnoreCase);
+    var children = Model.Children ?? new List<NavMenu>();
+    var target = string.IsNullOrEmpty(Model.Target) ? "_self" : Model.Target;
+}
+@if (children.Any())
+{
+    <li class="dropend">
+        <a class="dropdown-item dropdown-toggle" href="@Model.EffectiveUrl" id="m@(Model.Id)"
+           role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            @Model.Title
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="m@(Model.Id)">
+            @foreach (var child in children)
+            {
+                @await Html.PartialAsync("_MenuItemNested", child)
+            }
+        </ul>
+    </li>
+}
+else
+{
+    <li>
+        <a class="dropdown-item@(isActive ? " active" : "")" href="@Model.EffectiveUrl" target="@target">
+            @Model.Title
+        </a>
+    </li>
+}

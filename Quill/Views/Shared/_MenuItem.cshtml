@@ -1,0 +1,40 @@
+@using Quill.Models
+@model NavMenu
+
+@* 一级菜单：有子菜单渲染为下拉，无子菜单渲染为普通链接 *@
+@{
+    var path = (Context.Request.Path.Value ?? "/").TrimEnd('/');
+    var selfPath = (Model.EffectiveUrl ?? string.Empty).Split('?')[0].TrimEnd('/');
+    var isActive = selfPath.Length > 0 && string.Equals(selfPath, path, StringComparison.OrdinalIgnoreCase);
+    var children = Model.Children ?? new List<NavMenu>();
+    var childActive = children.Any(c =>
+        string.Equals((c.EffectiveUrl ?? string.Empty).Split('?')[0].TrimEnd('/'), path, StringComparison.OrdinalIgnoreCase));
+    var target = string.IsNullOrEmpty(Model.Target) ? "_self" : Model.Target;
+}
+@if (children.Any())
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle@(isActive || childActive ? " active" : "")" href="@Model.EffectiveUrl" id="m@(Model.Id)"
+           role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            @Model.Title
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="m@(Model.Id)">
+            @foreach (var child in children)
+            {
+                @await Html.PartialAsync("_MenuItemNested", child)
+            }
+        </ul>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link@(isActive ? " active" : "")" href="@Model.EffectiveUrl" target="@target">
+            @Model.Title
+            @if (Model.IsExternal)
+            {
+                <svg class="ico ico-sm" aria-hidden="true"><use href="#i-share" /></svg>
+            }
+        </a>
+    </li>
+}

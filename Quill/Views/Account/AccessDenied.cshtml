@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = "无访问权限";
+    ViewData["FullWidth"] = true;
+}
+
+<div class="error-page">
+    <div class="error-code">403</div>
+    <h1>这里暂不对你开放</h1>
+    <p>你没有权限访问该页面。如果确信这是误判，请联系管理员提升角色权限。</p>
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Index">返回首页</a>
+        <a class="btn btn-outline-secondary" asp-controller="Account" asp-action="Login">切换账号</a>
+    </div>
+</div>

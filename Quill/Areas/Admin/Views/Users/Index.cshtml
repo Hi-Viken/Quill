@@ -1,0 +1,82 @@
+@model List<ApplicationUser>
+@{
+    ViewData["Title"] = "用户管理";
+    var roleCounts = ViewBag.RoleCounts as Dictionary<string, int> ?? new Dictionary<string, int>();
+}
+
+<h4 class="mb-3">用户管理</h4>
+
+<div class="row g-2 mb-3">
+    @foreach (var r in Roles.All)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body py-2">
+                    <div class="small text-muted">@RoleNames.Text(r)</div>
+                    <div class="fs-5 fw-bold">@roleCounts.GetValueOrDefault(r)</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>用户名</th>
+                    <th>显示名</th>
+                    <th>邮箱</th>
+                    <th>角色</th>
+                    <th class="text-center">状态</th>
+                    <th>注册时间</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">暂无用户</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var u in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@u.UserName</td>
+                            <td class="small">@u.DisplayName</td>
+                            <td class="small">@u.Email</td>
+                            <td>
+                                @foreach (var r in u.RoleList)
+                                {
+                                    <span class="badge @RoleNames.Badge(r)">@RoleNames.Text(r)</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (u.IsActive)
+                                {
+                                    <span class="badge bg-success">正常</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">停用</span>
+                                }
+                            </td>
+                            <td class="small">@u.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@u.Id">编辑</a>
+                                <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('确定删除用户「@u.UserName」？');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

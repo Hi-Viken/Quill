@@ -1,0 +1,35 @@
+@using Quill.Models
+@model List<Tag>
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Tags</span>
+        <h1>标签云</h1>
+        <p class="lead-note">从一个关键词出发，找到相关的一切</p>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-tag" /></svg>
+        @Model.Count 个标签
+    </span>
+</div>
+
+@if (Model.Any())
+{
+    <div class="widget">
+        <div class="chip-cloud">
+            @foreach (var t in Model)
+            {
+                <a asp-controller="Tag" asp-action="Details" asp-route-slug="@t.Slug" class="tag-chip">
+                    #@t.Name <span class="text-muted ms-1">@t.ArticleCount</span>
+                </a>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <svg class="ico" aria-hidden="true"><use href="#i-tag" /></svg>
+        <p>暂无标签</p>
+    </div>
+}

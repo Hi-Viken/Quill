@@ -1,0 +1,102 @@
+@model ShareListViewModel
+@{
+    ViewData["Title"] = "分享管理";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">分享管理</h4>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">返回文件管理</a>
+</div>
+
+@if (Model.Shares.Count == 0)
+{
+    <div class="alert alert-light border text-center">
+        还没有任何分享链接。前往「文件管理」选择文件或文件夹，点击「分享」即可生成。
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>分享对象</th>
+                        <th style="width:90px;">类型</th>
+                        <th>链接</th>
+                        <th style="width:80px;">访问</th>
+                        <th style="width:150px;">有效期</th>
+                        <th style="width:90px;">状态</th>
+                        <th style="width:200px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Shares)
+                    {
+                        var url = $"{Model.BaseUrl}/share/{s.Token}";
+                        <tr>
+                            <td class="text-truncate" style="max-width:180px;" title="@s.TargetName">@s.TargetName</td>
+                            <td>
+                                @if (s.IsFolder)
+                                {
+                                    <span class="badge bg-warning text-dark">文件夹</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info text-dark">文件</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control font-monospace" value="@url" readonly onclick="this.select();" />
+                                    <button type="button" class="btn btn-outline-secondary js-copy" data-url="@url">复制</button>
+                                </div>
+                            </td>
+                            <td>@s.VisitCount</td>
+                            <td class="small">
+                                @(s.ExpireAt.HasValue ? s.ExpireAt.Value.ToString("yyyy-MM-dd HH:mm") : "永久")
+                            </td>
+                            <td>
+                                @if (s.IsValid)
+                                {
+                                    <span class="badge bg-success">生效中</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@s.StatusText</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="@url" target="_blank" class="btn btn-sm btn-outline-secondary">打开</a>
+                                    <form asp-action="ToggleShare" asp-route-id="@s.Id" method="post">
+                                        <input type="hidden" name="enabled" value="@(s.IsEnabled ? "false" : "true")" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            @(s.IsEnabled ? "停用" : "启用")
+                                        </button>
+                                    </form>
+                                    <form asp-action="DeleteShare" asp-route-id="@s.Id" method="post"
+                                          onsubmit="return confirm('确定删除该分享链接？');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.js-copy').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                navigator.clipboard.writeText(btn.dataset.url);
+                btn.textContent = '已复制';
+                setTimeout(function () { btn.textContent = '复制'; }, 1200);
+            });
+        });
+    </script>
+}

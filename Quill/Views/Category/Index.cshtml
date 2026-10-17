@@ -1,0 +1,28 @@
+@using Quill.Models
+@model List<Category>
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Categories</span>
+        <h1>全部分类</h1>
+        <p class="lead-note">按主题浏览全部文章</p>
+    </div>
+    <span class="count-chip">
+        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-folder" /></svg>
+        @Model.Count 个分类
+    </span>
+</div>
+
+@if (Model.Any())
+{
+    <div class="widget">
+        <partial name="_CategoryTree" model="Model" />
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+        <p>暂无分类</p>
+    </div>
+}
