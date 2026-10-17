@@ -89,7 +89,7 @@
 - **分片上传**：单文件最大 2 GB，每片 8 MB，保留直传兜底路径。
 - **私有存储**：文件存放在 `wwwroot` 之外的 `App_Data/media`；任何 `/uploads` 请求一律返回 404，内容只能经由登录态或分享令牌授权的管道读取。
 
-### 后台（`/Admin`）
+### 后台（`/Admin/Dashboard`）
 
 仪表盘统计、写文章、独立页面、分类管理、标签管理、评论审核、用户与角色管理、站点设置、文件管理、**多级导航菜单**、友情链接。
 
@@ -173,7 +173,7 @@ dotnet run --launch-profile https
 | `/Archive` | 归档总览（按年 / 月） |
 | `/Author` | 作者列表 |
 | `/Account/Login`、`/Account/Register` | 登录 / 注册 |
-| `/Admin` | 后台（需 admin / editor / writer） |
+| `/Admin/Dashboard` | 后台仪表盘（需 admin / editor / writer） |
 | `/Admin/Files` | 文件管理（目录 + 上传 + 移动 + 分享） |
 | `/share/{token}` | 分享访问页（免登录） |
 | `/share/{token}/download` | 下载分享的文件或文件夹 |
@@ -321,7 +321,18 @@ dotnet publish Quill/Quill.csproj -c Release -o /var/www/quill
 - 评论通知与密码重置邮件。
 - 自动化测试——目前仓库中没有测试项目。
 
-> **NuGet 提示**：构建时可能对 Markdig 的传递依赖 `System.Security.Cryptography.Pkcs 8.0.1` 报 NU1902/NU1903 漏洞告警，不影响构建与运行；如需消除可显式升级该包。
+### 依赖安全
+
+`System.Security.Cryptography.Pkcs 8.0.1` 原先由 `SqlSugarCore → Oracle.ManagedDataAccess.Core 23.8.0` 传递引入，带有两个已公开的安全公告：
+
+| 编号 | 等级 | 问题 | 修复版本 |
+| --- | --- | --- | --- |
+| [CVE-2026-84008](https://github.com/advisories/GHSA-846f-f764-76mx) | 高危（7.5） | `SignedCms.CheckSignature` 反复解析攻击者可控的 X.509 数据，未认证请求即可造成二次方级 CPU 耗尽 | 8.0.2 / 9.0.21 / 10.0.13 |
+| [CVE-2026-70162](https://github.com/advisories/GHSA-2fmv-rv2c-59x7) | 中危（5.9） | `EnvelopedCms.Decode` 处理恶意 CMS/PKCS#7 属性时存在二次方级资源放大（Windows） | 8.0.2 / 9.0.21 / 10.0.13 |
+
+`Quill.csproj` 中已显式引用 **10.0.13** 覆盖传递依赖的 8.0.1，`dotnet list package --vulnerable --include-transitive` 复查结果为「没有易受攻击的包」。
+
+该程序集不包含在共享框架内，会随应用一起部署，所以必须显式升级才真正生效。待 `Oracle.ManagedDataAccess.Core` 自身把依赖提升到 8.0.2+ 后，可删除这项引用——`Quill.csproj` 里的注释记录了完整依赖链与两个 CVE，方便后续维护者判断。
 
 ---
 
@@ -329,7 +340,7 @@ dotnet publish Quill/Quill.csproj -c Release -o /var/www/quill
 
 1. Fork 仓库并新建分支：`git checkout -b feature/my-change`。
 2. 保持改动聚焦，遵循现有代码风格（中文 XML 注释与界面文案是有意为之）。
-3. 确认 `dotnet build` 通过，并实际点一遍受影响的页面（前台与 `/Admin`）。
+3. 确认 `dotnet build` 通过，并实际点一遍受影响的页面（前台与后台）。
 4. 提交 Pull Request，说明问题、思路与验证方式。
 
 欢迎提交 Issue，请附上 .NET 版本、数据库类型与相关日志。

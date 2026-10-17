@@ -89,7 +89,7 @@ Most .NET blog engines drag in EF Core migrations, an Identity schema you never 
 - **Chunked uploads** — up to 2 GB per file, 8 MB per request chunk, with a direct-upload fallback path.
 - **Private storage** — files live in `App_Data/media` **outside** `wwwroot`; every request to `/uploads` is refused with 404, and content is only served through the authenticated or token-authorized pipeline.
 
-### Admin Area (`/Admin`)
+### Admin Area (`/Admin/Dashboard`)
 
 Dashboard statistics, post editor, standalone pages, categories, tags, comment moderation, users and roles, site settings, file manager, **multi-level navigation menus**, and friend links.
 
@@ -173,7 +173,7 @@ Newly registered users get the `visitor` role. An administrator must promote the
 | `/Archive` | Archive overview (year / month) |
 | `/Author` | Author index |
 | `/Account/Login`, `/Account/Register` | Sign in / sign up |
-| `/Admin` | Admin dashboard (admin / editor / writer) |
+| `/Admin/Dashboard` | Admin dashboard (admin / editor / writer) |
 | `/Admin/Files` | File manager (folders, upload, move, share) |
 | `/share/{token}` | Public share page (no login) |
 | `/share/{token}/download` | Download a shared file or folder bundle |
@@ -324,7 +324,18 @@ Not included yet — sensible places to contribute:
 - Email notifications for comments and password resets.
 - Automated tests — there is currently no test project.
 
-> **NuGet advisory:** builds may report NU1902/NU1903 for the transitive package `System.Security.Cryptography.Pkcs 8.0.1` pulled in by Markdig. It does not affect build or runtime; pin the package explicitly if you want the warning gone.
+### Dependency security
+
+`System.Security.Cryptography.Pkcs 8.0.1` used to arrive transitively through `SqlSugarCore → Oracle.ManagedDataAccess.Core 23.8.0`, and carried two published advisories:
+
+| ID | Severity | Issue | Patched in |
+| --- | --- | --- | --- |
+| [CVE-2026-84008](https://github.com/advisories/GHSA-846f-f764-76mx) | High (7.5) | `SignedCms.CheckSignature` re-parses attacker-controlled X.509 data, allowing unauthenticated quadratic CPU exhaustion | 8.0.2 / 9.0.21 / 10.0.13 |
+| [CVE-2026-70162](https://github.com/advisories/GHSA-2fmv-rv2c-59x7) | Moderate (5.9) | `EnvelopedCms.Decode` performs quadratic work on crafted CMS/PKCS#7 attributes (Windows) | 8.0.2 / 9.0.21 / 10.0.13 |
+
+`Quill.csproj` now pins `System.Security.Cryptography.Pkcs` to **10.0.13**, which overrides the transitive 8.0.1 and restores clean (`dotnet list package --vulnerable --include-transitive` reports no vulnerable packages). The assembly is out-of-band — it is not part of the shared framework — so the pinned version is what actually gets deployed.
+
+This pin can be dropped once `Oracle.ManagedDataAccess.Core` requires 8.0.2 or later on its own. The comment in `Quill.csproj` records the dependency chain and both CVEs for whoever revisits it.
 
 ---
 
@@ -332,7 +343,7 @@ Not included yet — sensible places to contribute:
 
 1. Fork the repository and create a topic branch: `git checkout -b feature/my-change`.
 2. Keep changes focused; match the existing code style (Chinese XML comments and UI text are intentional).
-3. Verify `dotnet build` succeeds and click through the affected pages, both front-end and `/Admin`.
+3. Verify `dotnet build` succeeds and click through the affected pages, both front-end and the admin area.
 4. Open a pull request describing the problem, the approach, and how you verified it.
 
 Bug reports are welcome — please include the .NET version, the database provider, and the relevant log output.
